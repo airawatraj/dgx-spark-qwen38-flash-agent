@@ -15,13 +15,18 @@ I bought a DGX Spark to do real work: running serious local AI agents and traini
 ![Smarts](https://img.shields.io/badge/smarts-100%2F100-brightgreen)
 ![Mode](https://img.shields.io/badge/mode-reasoning%20%2B%20tools-black)
 
-Part of the DGX Spark local agent series:
-- [Cogni-Brain (Nemotron-120B)](https://github.com/airawatraj/dgx-spark-nemotron-super-agent) — deep reasoning, 23 TPS
-- [Cogni-Brain-2 (Qwen 3.6-35B via Atlas)](https://github.com/airawatraj/dgx-spark-qwen-super-agent) — fast & agentic, 218 TPS
-- [Cogni-Brain-3 (Qwen 3.8-27B via vLLM MTP)](https://github.com/airawatraj/dgx-spark-qwen38-super-agent) — MTP speculative reasoning, 100/100 smarts
-- More setups: [github.com/airawatraj](https://github.com/airawatraj)
+This repo is part of the DGX Spark local agent series:
 
-This iteration runs **[RadixArk/Qwen3.8-Flash-Next-NVFP4](https://huggingface.co/RadixArk/Qwen3.8-Flash-Next-NVFP4)** (~176B total parameters: 125B MoE main + 51B n-gram PLE embedding table, 6B active) on a single **NVIDIA DGX Spark / GB10** (128 GB unified memory).
+| Repo | Role | Key Metric |
+|---|---|---|
+| [`dgx-spark-nemotron-super-agent`](https://github.com/airawatraj/dgx-spark-nemotron-super-agent) | Deep reasoning large brain | 23.7 tok/s, 131K context |
+| [`dgx-spark-qwen-super-agent`](https://github.com/airawatraj/dgx-spark-qwen-super-agent) | Ultra-fast agentic brain via Atlas | 218.8 tok/s, 100/100 smarts |
+| [`dgx-spark-qwen38-super-agent`](https://github.com/airawatraj/dgx-spark-qwen38-super-agent) | MTP speculative reasoning brain | 26 tok/s (119 burst), 262K context |
+| [`dgx-spark-qwen-omni-super-agent`](https://github.com/airawatraj/dgx-spark-qwen-omni-super-agent) | Long-context DFlash agent | 54.4 tok/s, 262K context |
+| [`dgx-spark-gemma4-omni-agent`](https://github.com/airawatraj/dgx-spark-gemma4-omni-agent) | Native multimodal perception agent | Text, image, audio, video frames |
+| More setups | [github.com/airawatraj](https://github.com/airawatraj) | Workstation agent profiles |
+
+This iteration runs **[RadixArk/Qwen3.8-Flash-Next-NVFP4](https://huggingface.co/RadixArk/Qwen3.8-Flash-Next-NVFP4)** (~176B total parameters: 125B MoE main + 51B n-gram PLE embedding table, 6B active) on a single **NVIDIA DGX Spark / GB10** (128 GB unified memory). For technical details on the zero-copy mmap architecture and GB10 runtime fixes, see [HOW_IT_WORKS.md](HOW_IT_WORKS.md).
 
 > ⚠️ **Personal workstation setup. Not for enterprise use. Use at your own risk.**
 
@@ -181,11 +186,10 @@ You can override defaults with environment variables before running `docker/star
 ```text
 dgx-spark-qwen38-flash-agent/
 ├── README.md                      ← this document
+├── HOW_IT_WORKS.md                ← In-depth breakdown of PLE mmap & GB10 fixes
 ├── CITATION.cff                   ← citation metadata
 ├── LICENSE                        ← MIT license
 ├── Dockerfile                     ← Patched vLLM image serving PLE table via mmap
-├── docs/
-│   └── HOW-IT-WORKS.md            ← In-depth breakdown of PLE mmap & GB10 fixes
 ├── src/
 │   ├── vllm_ple_mmap.py           ← Complete PLE disk mmap patch module
 │   └── test_ple_mmap_cpu.py       ← CPU unit test for safetensors gather validation
@@ -205,6 +209,17 @@ dgx-spark-qwen38-flash-agent/
 │   └── smoke_test.sh              ← Health, coherence, prefill & decode verification
 └── assets/                        ← Architecture diagrams and benchmark visualizations
 ```
+
+---
+
+## Compared to Prior Published Results
+
+| Who | Model | Runtime | Single-Stream | Concurrency | Context | Tool-Eval |
+|---|---|---|---|---|---|---|
+| **[Cogni-Brain-2 (airawatraj)](https://spark-arena.com/benchmark/sub1779495971526)** | Qwen 3.6-35B | Atlas NVFP4 | **218.85 tok/s** | — | 131K | **100/100** |
+| **[Cogni-Brain (airawatraj)](https://spark-arena.com/benchmark/sub1778644062716)** | Nemotron-120B | vLLM NVFP4 | **23.45 tok/s** | — | 131K | **100/100** |
+| **[Cogni-Brain-3 (airawatraj)](https://github.com/airawatraj/dgx-spark-qwen38-super-agent)** | Qwen 3.8-27B | vLLM MTP | **24–26 tok/s** | 60.6 tok/s (c=3) | 262K | **100/100** |
+| **Cogni-Brain-Flash (this repo)** | Qwen3.8-Flash-Next (176B/6B) | **vLLM PLE MMAP** | **25–35+ tok/s** | **8 streams** | **262K–500K** | **100/100** |
 
 ---
 
