@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.uv/
+.env
+.env.local
+.DS_Store
+
+# Benchmark logs and results
+benchmark/results_*.csv
+benchmark/*.csv
+benchmark/*.log
+
+# IDE files
+.idea/
+.vscode/

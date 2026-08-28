@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+title: "Running Qwen3.8-Flash-Next on NVIDIA DGX Spark with PLE Disk Mmap and vLLM MTP"
+message: "If you use this setup, benchmark wrappers, or PLE mmap architecture, please cite it as below."
+type: software
+authors:
+  - family-names: "Rawat"
+    given-names: "Rajendra Singh"
+    affiliation: "cogni.chat"
+    orcid: "https://orcid.org/0009-0007-5017-1341"
+repository-code: "https://github.com/airawatraj/dgx-spark-qwen38-flash-agent"
+abstract: >-
+  A production-ready technical implementation and benchmarking suite for running
+  RadixArk/Qwen3.8-Flash-Next-NVFP4 (~176B total params, 6B active) on NVIDIA DGX Spark
+  (GB10 Grace-Blackwell, 128 GB unified memory). By serving the 51B parameter n-gram PLE
+  embedding table from NVMe disk via multithreaded mmap, resident GPU memory drops from
+  122 GiB to ~76 GiB, freeing ~52 GiB of unified pool for KV cache (~720k–790k tokens).
+  Includes native MTP speculative decoding, YaRN context extension up to 500K tokens,
+  and native agentic tool calling.
+keywords:
+  - "Qwen3.8-Flash-Next"
+  - "DGX Spark"
+  - "GB10"
+  - "Grace Blackwell"
+  - "vLLM"
+  - "PLE MMAP"
+  - "Speculative Decoding"
+  - "MTP"
+  - "YaRN"
+  - "AI Agents"
+  - "NVFP4"
+  - "Sparse Attention"
+license: MIT
+version: 1.0.0
+date-released: "2026-08-28"
