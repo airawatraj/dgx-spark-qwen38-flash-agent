@@ -4,7 +4,7 @@
 # ///
 """
 DGX Spark / Qwen3.8-Flash-Next Full Spark-Arena Benchmark
-Runs llama-benchy sweep compatible with spark-arena leaderboard formatting.
+Runs the long-form llama-benchy sweep used for spark-arena-style measurements.
 
 Usage:
   uv run benchmark/benchmark_speed_arena.py
@@ -62,78 +62,43 @@ def build_command(args):
         "--tokenizer",
         args.tokenizer,
         "--pp",
-        args.pp,
+        str(args.pp),
         "--tg",
-        args.tg,
+        str(args.tg),
+        "--extra-body",
+        "return_token_ids=false",
         "--save-result",
         args.save_result,
+        "--depth",
+        *[str(depth) for depth in args.depth],
+        "--concurrency",
+        *[str(concurrency) for concurrency in args.concurrency],
     ]
-
-    for depth in args.depth:
-        command.extend(["--depth", str(depth)])
-
-    for concurrency in args.concurrency:
-        command.extend(["--concurrency", str(concurrency)])
-
     return command
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="DGX Spark / Qwen3.8-Flash-Next Full Arena Benchmark Sweep"
+        description="Run the full spark-arena-style llama-benchy sweep against the local endpoint.",
+        epilog="Example: uv run benchmark/benchmark_speed_arena.py --save-result benchmark/results_arena.csv",
     )
-    parser.add_argument(
-        "--base-url",
-        default="http://localhost:8000/v1",
-        help="Target base URL",
-    )
-    parser.add_argument(
-        "--model",
-        default="Cogni-Brain",
-        help="Target model identifier",
-    )
-    parser.add_argument(
-        "--served-model-name",
-        default="Cogni-Brain",
-        help="Served model name exposed by the API",
-    )
-    parser.add_argument(
-        "--tokenizer",
-        default="RadixArk/Qwen3.8-Flash-Next-NVFP4",
-        help="Tokenizer name or path",
-    )
-    parser.add_argument(
-        "--pp",
-        default="512,2048,8192",
-        help="Prompt prefill sizes to test",
-    )
-    parser.add_argument(
-        "--tg",
-        default="128,512",
-        help="Token generation lengths to test",
-    )
+    parser.add_argument("--base-url", default="http://localhost:8000/v1")
+    parser.add_argument("--model", default="Cogni-Brain")
+    parser.add_argument("--served-model-name", default="Cogni-Brain")
+    parser.add_argument("--tokenizer", default="RadixArk/Qwen3.8-Flash-Next-NVFP4")
+    parser.add_argument("--pp", type=int, default=2048)
+    parser.add_argument("--tg", type=int, default=128)
     parser.add_argument(
         "--depth",
-        type=int,
         nargs="+",
-        default=[1, 2, 4],
-        help="Queue depths to test",
-    )
-    parser.add_argument(
-        "--concurrency",
         type=int,
-        nargs="+",
-        default=[1, 2, 4, 8],
-        help="Concurrency levels to test",
+        default=[0, 4096, 8192, 16384, 32768, 65535, 131072, 262144],
     )
-    parser.add_argument(
-        "--save-result",
-        default="benchmark/results_arena.csv",
-        help="Path to save output CSV results",
-    )
+    parser.add_argument("--concurrency", nargs="+", type=int, default=[1, 2, 4, 8])
+    parser.add_argument("--save-result", default="benchmark/results_arena.csv")
     args = parser.parse_args()
 
-    header("SPARK-ARENA BENCHMARK SWEEP")
+    header("FULL ARENA BENCHMARK")
     result_line("Timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     result_line("Base URL", args.base_url)
     result_line("Model", args.model)
@@ -141,13 +106,14 @@ def main():
     result_line("Tokenizer", args.tokenizer)
     result_line("Prompt prefill", args.pp)
     result_line("Token generation", args.tg)
-    result_line("Depths", ", ".join(str(d) for d in args.depth))
-    result_line("Concurrency", ", ".join(str(c_val) for c_val in args.concurrency))
+    result_line("Depths", ", ".join(str(depth) for depth in args.depth))
+    result_line("Concurrency", ", ".join(str(concurrency) for concurrency in args.concurrency))
     result_line("Output CSV", args.save_result)
     print()
+    print(f"  {c('This sweep can take several hours. Run it with only spark-brain active.', 'yellow')}")
 
     if shutil.which("uv") is None:
-        print(f"\n{c('ERROR: uv is not installed or not on PATH', 'red')}")
+        print(f"\n{c('uv is not installed or not on PATH', 'red')}")
         sys.exit(1)
 
     output_path = Path(args.save_result)
@@ -160,12 +126,12 @@ def main():
     print("  " + " ".join(command))
 
     header("RUNNING")
-    print(f"  {c('Streaming llama-benchy arena sweep output below...', 'dim')}\n")
+    print(f"  {c('Streaming llama-benchy output below...', 'dim')}")
 
     try:
         completed = subprocess.run(command, check=False)
     except KeyboardInterrupt:
-        print(f"\n{c('Benchmark sweep interrupted by user', 'yellow')}")
+        print(f"\n{c('Benchmark interrupted by user', 'yellow')}")
         sys.exit(130)
     except FileNotFoundError:
         print(f"\n{c('Failed to start uv', 'red')}")
@@ -178,7 +144,7 @@ def main():
     else:
         header("FAILED")
         result_line("Exit code", completed.returncode, color="red")
-        print(f"  {c('llama-benchy sweep did not complete successfully.', 'red')}")
+        print(f"  {c('llama-benchy did not complete successfully.', 'red')}")
         sys.exit(completed.returncode)
 
 

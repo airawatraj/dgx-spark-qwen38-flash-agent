@@ -161,6 +161,22 @@ uv run benchmark/benchmark_speed_arena.py --save-result benchmark/results_arena.
 bash benchmark/smoke_test.sh
 ```
 
+### Speed & Context Results
+
+<p align="center">
+  <img src="./assets/benchmark_speed_qwen38_flash.png" width="700" alt="vLLM PLE MMAP Speed & Context Benchmark Results">
+</p>
+
+### Smarts Results (Tool-Use Evaluation)
+
+<p align="center">
+  <img src="./assets/benchmark_smarts_qwen38_flash_1.png" width="700" alt="Smarts benchmark — scenarios 1-15">
+</p>
+
+<p align="center">
+  <img src="./assets/benchmark_smarts_qwen38_flash_2.png" width="700" alt="Smarts benchmark — breakdown and score">
+</p>
+
 ---
 
 ## Environment Overrides & Tuning
