@@ -8,7 +8,7 @@ set -euo pipefail
 
 EP="${1:-localhost:8000}"
 BASE="http://$EP"
-MODEL="${MODEL:-qwen3.8-flash-next}"
+MODEL="${MODEL:-Cogni-Brain}"
 
 echo "================================================================="
 echo "=== DGX Spark Qwen3.8-Flash-Next Smoke Test ($EP) ==="

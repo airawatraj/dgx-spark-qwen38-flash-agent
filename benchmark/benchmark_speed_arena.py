@@ -89,12 +89,12 @@ def main():
     )
     parser.add_argument(
         "--model",
-        default="RadixArk/Qwen3.8-Flash-Next-NVFP4",
-        help="Hugging Face model ID",
+        default="Cogni-Brain",
+        help="Target model identifier",
     )
     parser.add_argument(
         "--served-model-name",
-        default="qwen3.8-flash-next",
+        default="Cogni-Brain",
         help="Served model name exposed by the API",
     )
     parser.add_argument(

@@ -111,7 +111,7 @@ bash setup/download_model.sh
 bash docker/start.sh
 
 # 4. Follow initialization logs (wait for "Application startup complete", ~8 min on first boot)
-docker logs -f spark-brain-flash
+docker logs -f spark-brain
 
 # 5. Ready check
 bash docker/status.sh
@@ -135,7 +135,7 @@ bash docker/start-yarn.sh
 curl http://localhost:8000/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
-    "model": "qwen3.8-flash-next",
+    "model": "Cogni-Brain",
     "messages": [
       {"role": "user", "content": "Explain how speculative decoding works in sparse MoE models."}
     ],
@@ -177,7 +177,7 @@ You can override defaults with environment variables before running `docker/star
 | `GPU_MEM` | `0.85` | Fraction of 128 GB pool for weights + KV (~76 GB weights, ~20+ GB KV) |
 | `WORKERS` | `32` | Worker threads for multithreaded mmap row gather |
 | `PREWARM` | `0` | Set to `1` to stream table at boot to warm the OS page cache |
-| `CONTAINER_NAME` | `spark-brain-flash` | Name of the Docker container |
+| `CONTAINER_NAME` | `spark-brain` | Name of the Docker container |
 
 ---
 
@@ -219,7 +219,7 @@ dgx-spark-qwen38-flash-agent/
 | **[Cogni-Brain-2 (airawatraj)](https://spark-arena.com/benchmark/sub1779495971526)** | Qwen 3.6-35B | Atlas NVFP4 | **218.85 tok/s** | — | 131K | **100/100** |
 | **[Cogni-Brain (airawatraj)](https://spark-arena.com/benchmark/sub1778644062716)** | Nemotron-120B | vLLM NVFP4 | **23.45 tok/s** | — | 131K | **100/100** |
 | **[Cogni-Brain-3 (airawatraj)](https://github.com/airawatraj/dgx-spark-qwen38-super-agent)** | Qwen 3.8-27B | vLLM MTP | **24–26 tok/s** | 60.6 tok/s (c=3) | 262K | **100/100** |
-| **Cogni-Brain-Flash (this repo)** | Qwen3.8-Flash-Next (176B/6B) | **vLLM PLE MMAP** | **25–35+ tok/s** | **8 streams** | **262K–500K** | **100/100** |
+| **Cogni-Brain (this repo)** | Qwen3.8-Flash-Next (176B/6B) | **vLLM PLE MMAP** | **25–35+ tok/s** | **8 streams** | **262K–500K** | **100/100** |
 
 ---
 

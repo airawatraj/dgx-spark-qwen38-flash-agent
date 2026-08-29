@@ -20,15 +20,15 @@
 #   PREWARM=0         1 = stream the table once at boot to warm page cache
 #   WORKERS=32        worker threads for mmap row gather
 #   EXTRA=            extra vLLM flags passed verbatim
-#   CONTAINER_NAME=   container name (default: spark-brain-flash)
+#   CONTAINER_NAME=   container name (default: spark-brain)
 #   IMAGE=            Docker image (default: qwen38-flash-dgx)
 #   MODEL=            Hugging Face model ID (default: RadixArk/Qwen3.8-Flash-Next-NVFP4)
 set -euo pipefail
 
-CONTAINER_NAME="${CONTAINER_NAME:-spark-brain-flash}"
+CONTAINER_NAME="${CONTAINER_NAME:-spark-brain}"
 IMAGE="${IMAGE:-qwen38-flash-dgx}"
 MODEL="${MODEL:-RadixArk/Qwen3.8-Flash-Next-NVFP4}"
-SERVED_MODEL_NAME="${SERVED_MODEL_NAME:-qwen3.8-flash-next}"
+SERVED_MODEL_NAME="${SERVED_MODEL_NAME:-Cogni-Brain}"
 HF_CACHE="${HF_CACHE:-$HOME/.cache/huggingface}"
 PORT="${PORT:-8000}"
 CTX="${CTX:-262144}"

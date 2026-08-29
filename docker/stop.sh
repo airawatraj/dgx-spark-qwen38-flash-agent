@@ -2,7 +2,7 @@
 # docker/stop.sh — Stop and remove Qwen3.8-Flash-Next container
 set -euo pipefail
 
-CONTAINER_NAME="${CONTAINER_NAME:-spark-brain-flash}"
+CONTAINER_NAME="${CONTAINER_NAME:-spark-brain}"
 
 echo "=== Stopping $CONTAINER_NAME ==="
 

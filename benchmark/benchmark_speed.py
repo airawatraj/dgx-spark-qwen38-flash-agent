@@ -6,7 +6,7 @@
 """
 DGX Spark / Qwen3.8-Flash-Next Speed & Context Benchmark
 Tests TPS, TTFT, concurrency scaling, and context window.
-Usage: uv run benchmark/benchmark_speed.py [--host localhost] [--port 8000] [--model qwen3.8-flash-next]
+Usage: uv run benchmark/benchmark_speed.py [--host localhost] [--port 8000] [--model Cogni-Brain]
 """
 
 import argparse
@@ -227,7 +227,7 @@ def main():
     )
     parser.add_argument("--host", default="localhost")
     parser.add_argument("--port", default=8000, type=int)
-    parser.add_argument("--model", default="qwen3.8-flash-next")
+    parser.add_argument("--model", default="Cogni-Brain")
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--skip-context", action="store_true")
     parser.add_argument("--skip-concurrent", action="store_true")

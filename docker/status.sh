@@ -2,7 +2,7 @@
 # docker/status.sh — Inspect Qwen3.8-Flash-Next container, memory & vLLM metrics
 set -euo pipefail
 
-CONTAINER_NAME="${CONTAINER_NAME:-spark-brain-flash}"
+CONTAINER_NAME="${CONTAINER_NAME:-spark-brain}"
 PORT="${PORT:-8000}"
 
 echo "=== Qwen3.8-Flash-Next Status ==="
