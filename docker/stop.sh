@@ -14,3 +14,9 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
 else
   echo "Container $CONTAINER_NAME is not currently running."
 fi
+
+# Clean up legacy container name if still present
+if docker ps -a --format '{{.Names}}' | grep -q '^spark-brain-flash$'; then
+  docker rm -f spark-brain-flash >/dev/null 2>&1 || true
+  echo "✓ Removed legacy spark-brain-flash container."
+fi

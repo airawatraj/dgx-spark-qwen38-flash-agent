@@ -105,6 +105,7 @@ fi
 # ── Launch Container ──────────────────────────────────────────────────────────
 echo "Cleaning up any existing container named $CONTAINER_NAME ..."
 docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+docker rm -f "spark-brain-flash" >/dev/null 2>&1 || true
 
 echo "Starting $CONTAINER_NAME on port $PORT ..."
 # shellcheck disable=SC2086
