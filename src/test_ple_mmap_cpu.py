@@ -1,7 +1,15 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "numpy",
+#     "torch",
+# ]
+# ///
 """CPU unit test for vllm_ple_mmap: synthetic FP8 shards -> gather == reference.
 
-Run inside the vLLM image (needs numpy + torch, no GPU):
-  docker run --rm -v $PWD:/t -w /t --entrypoint python3 vllm/vllm-openai:qwen38-flash-next test_ple_mmap_cpu.py
+Run directly via uv:
+  uv run src/test_ple_mmap_cpu.py
 """
 import json
 import os

@@ -127,7 +127,7 @@ def main():
 
     if completed.returncode == 0:
         header("DONE")
-        result_line("Status", "Success (100% Tool-Eval)")
+        result_line("Status", "Success (Completed)")
     else:
         header("FAILED")
         result_line("Exit code", completed.returncode, color="red")
