@@ -6,7 +6,7 @@
 ![Runtime](https://img.shields.io/badge/runtime-vLLM%20%2B%20PLE%20MMAP-orange)
 ![Hardware](https://img.shields.io/badge/hardware-NVIDIA%20DGX%20Spark-brightgreen?logo=nvidia&logoColor=white)
 ![Context](https://img.shields.io/badge/context-262K%20%7C%20500K%20YaRN-blue)
-![Tool Eval](https://img.shields.io/badge/tool--eval-100%2F100-success)
+![Tool Eval](https://img.shields.io/badge/tool--eval-93%2F100-success)
 ![Reasoning](https://img.shields.io/badge/reasoning-qwen3-black)
 ![Quantization](https://img.shields.io/badge/quantization-NVFP4-purple)
 
@@ -26,7 +26,7 @@ Key characteristics:
 - **Multi-Token Prediction (MTP, $k=2$)** — Native built-in speculative draft head yielding 25–35+ tok/s decode.
 - **QSA Sparse Attention + GDN Linear Attention** — Fast, memory-efficient attention preserving linear $O(N)$ prefill scaling.
 - **262K Native Context / 500K YaRN** — Native 262,144 token context window, expandable up to 500,000 tokens via YaRN RoPE scaling (`docker/start-yarn.sh`).
-- **Native Tool Calling & Reasoning** — Built-in `qwen3_coder` tool parser and `qwen3` reasoning parser (100/100 tool-eval benchmark score).
+- **Native Tool Calling & Reasoning** — Built-in `qwen3_coder` tool parser and `qwen3` reasoning parser (93/100 tool-eval benchmark score, 14/15 PASS).
 
 ---
 
@@ -139,7 +139,7 @@ uv run benchmark/benchmark_speed_arena.py \
 ## Benchmark Results Summary
 
 > Benchmarks run on DGX Spark GB10 · August 2026  
-> vLLM + PLE MMAP Patch · Native MTP ($k=2$) · tool-eval-bench (15/15 PASS)
+> vLLM + PLE MMAP Patch · Native MTP ($k=2$) · tool-eval-bench (14/15 PASS, 93/100)
 
 ### Speed & Context Performance
 
@@ -150,8 +150,8 @@ uv run benchmark/benchmark_speed_arena.py \
 | Single-stream Decode ($c=1$) | Steady-state TPS | **23–26 tok/s** | Invariant across context depths up to 131K |
 | Single-stream Prefill ($c=1$) | Throughput | **~1,000 tok/s** | Linear $O(N)$ prefill scaling |
 | Multi-stream Decode ($c=8, d=0$) | Peak Aggregate TPS | **92.7 tok/s** | Concurrency scaling on low context |
-| Context Depth | Max Tested | **131K / 262K native** | Scalable to 500K with YaRN |
-| Tool-Use Evaluation | Pass Rate | **100/100 (15/15 PASS)** | Native `qwen3_coder` tool calling |
+| Context Depth | Max Tested | **174K / 262K native** | Scalable to 500K with YaRN |
+| Tool-Use Evaluation | Pass Rate | **93/100 (14/15 PASS)** | Native `qwen3_coder` tool calling |
 
 ### Tool-Use Evaluation (Smarts)
 
