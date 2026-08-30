@@ -6,6 +6,7 @@
 ![Runtime](https://img.shields.io/badge/runtime-vLLM%20%2B%20PLE%20MMAP-orange)
 ![Hardware](https://img.shields.io/badge/hardware-NVIDIA%20DGX%20Spark-brightgreen?logo=nvidia&logoColor=white)
 ![Context](https://img.shields.io/badge/context-262K%20%7C%20500K%20YaRN-blue)
+[![Spark Arena](https://img.shields.io/badge/spark--arena-verified-darkgreen)](https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950)
 ![Tool Eval](https://img.shields.io/badge/tool--eval-93%2F100-success)
 ![Reasoning](https://img.shields.io/badge/reasoning-qwen3-black)
 ![Quantization](https://img.shields.io/badge/quantization-NVFP4-purple)
@@ -123,6 +124,8 @@ uv run benchmark/benchmark_smarts.py --mode trials --seed 42 --trials 3
 
 ### spark-arena Benchmark (llama-benchy)
 
+Official online benchmark submission: [https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950](https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950)
+
 ```bash
 # 1. Standard spark-arena sweep (tests depths 0 to 128K across concurrencies 1, 2, 4, 8)
 uv run benchmark/benchmark_speed_arena.py --save-result benchmark/results_full.csv
@@ -140,6 +143,12 @@ uv run benchmark/benchmark_speed_arena.py \
 
 > Benchmarks run on DGX Spark GB10 · August 2026  
 > vLLM + PLE MMAP Patch · Native MTP ($k=2$) · tool-eval-bench (14/15 PASS, 93/100)
+
+### Spark Arena Benchmark
+
+[![Spark Arena Benchmark Results](assets/benchmark_spark-arena_qwen38_flash.png)](https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950)
+
+> 🔗 **Live Submission & Interactive Charts:** [spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950](https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950)
 
 ### Speed & Context Performance
 
