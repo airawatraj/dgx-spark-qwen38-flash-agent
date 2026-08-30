@@ -46,8 +46,10 @@ def result_line(label, value, unit="", color="green"):
     print(f"  {c(label.ljust(30), 'dim')} {c(str(value), color)} {unit}")
 
 
-def make_prompt(n_words):
+def make_prompt(target_tokens):
     base = ("The quick brown fox jumps over the lazy dog. " * 50).split()
+    # 1 word ~ 1.33 tokens, so target_tokens / 1.33 words gives approximately target_tokens
+    n_words = max(10, int(target_tokens / 1.33))
     words = (base * ((n_words // len(base)) + 1))[:n_words]
     return " ".join(words) + "\n\nSummarize the above text in one sentence."
 
@@ -193,24 +195,28 @@ def test_concurrent(host, port, model, n_streams_list=(2, 4, 8), max_tokens=200)
         )
 
 
-def test_context_window(host, port, model):
+def test_context_window(host, port, model, max_ctx=260000):
     header("3. CONTEXT WINDOW SCALING TEST")
-    test_lengths = [1000, 4000, 16000, 32000, 64000, 131000, 262000]
+    test_token_targets = [1000, 4000, 16000, 32000, 64000, 131000, 260000]
+    if max_ctx > 260000:
+        test_token_targets = [t for t in test_token_targets if t < max_ctx] + [max_ctx]
+    else:
+        test_token_targets = [t for t in test_token_targets if t <= max_ctx]
 
     max_ok = 0
-    for length in test_lengths:
-        prompt = make_prompt(length)
+    for target_tok in test_token_targets:
+        prompt = make_prompt(target_tok)
         approx_tok = count_tokens_approx(prompt)
 
         print(f"  Testing ~{approx_tok:,} tokens context... ", end="", flush=True)
         t0 = time.perf_counter()
         ttft, tps, n_tok, err = stream_completion(
-            host, port, model, prompt, max_tokens=32, timeout=300
+            host, port, model, prompt, max_tokens=32, timeout=600
         )
         dt = time.perf_counter() - t0
 
         if err:
-            print(f"{c('FAILED (' + err[:40] + ')', 'red')}")
+            print(f"{c('FAILED (' + err[:50] + ')', 'red')}")
             break
         else:
             max_ok = approx_tok
@@ -231,6 +237,12 @@ def main():
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--skip-context", action="store_true")
     parser.add_argument("--skip-concurrent", action="store_true")
+    parser.add_argument(
+        "--max-ctx",
+        type=int,
+        default=260000,
+        help="Maximum context tokens to test (default: 260000; up to 500000 in YaRN mode)",
+    )
     args = parser.parse_args()
 
     print(f"\n{c('=====================================================', 'cyan')}")
@@ -260,7 +272,9 @@ def main():
 
     max_ctx = 0
     if not args.skip_context:
-        max_ctx = test_context_window(args.host, args.port, args.model)
+        max_ctx = test_context_window(
+            args.host, args.port, args.model, max_ctx=args.max_ctx
+        )
 
     header("SUMMARY")
     result_line("Timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))

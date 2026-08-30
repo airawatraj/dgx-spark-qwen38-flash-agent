@@ -92,7 +92,7 @@ def main():
         "--depth",
         nargs="+",
         type=int,
-        default=[0, 4096, 8192, 16384, 32768, 65535, 131072, 262144],
+        default=[0, 4096, 8192, 16384, 32768, 65535, 131072, 259968],
     )
     parser.add_argument("--concurrency", nargs="+", type=int, default=[1, 2, 4, 8])
     parser.add_argument("--save-result", default="benchmark/results_arena.csv")
