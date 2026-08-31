@@ -42,6 +42,7 @@ docker run --rm --gpus all \
   --ipc=host \
   -v "$HF_CACHE":/root/.cache/huggingface \
   -v "$REPO_DIR":/out \
+  -e "HF_HOME=/root/.cache/huggingface" \
   -e "HASHK_R=$R" \
   -e "HASHK_OUT=/out/ple_hashk_R${R}.pt" \
   --entrypoint python3 \
