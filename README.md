@@ -19,18 +19,18 @@ By compressing the 51.2 GB n-gram PLE table 4× into a **12.8 GB GPU-resident Ha
 
 ---
 
-## Performance Overview
+## Performance Overview (Single DGX Spark — GB10)
 
-| Dimension | Specification & Results |
-|---|---|
-| **Served Model Name** | `Cogni-Brain` |
-| **Docker Container** | `spark-brain` |
-| **Single-Stream Decode** | **~36 tok/s (code)** / **~21–27 tok/s (free-form)** |
-| **Multi-Stream Concurrency** | **~57 to 157 tok/s aggregate** across 4–8 streams |
-| **Cold Prefill** | **~2,000–2,500 tok/s** |
-| **Warm Prefill (Radix Cache)** | **up to ~139,000 tok/s** (56× acceleration) |
-| **Context Window** | **262,144 tokens** native context (exact needle recall at 222k tokens) |
-| **Coding & Agentic Quality** | **12/12 executed-code pass**, **86/100 tool-eval-bench quality** (151/176 points) |
+| Dimension | Target Specification | Measured Result (Local Run) |
+|---|---|---|
+| **Served Model Name** | `Cogni-Brain` | `Cogni-Brain` (Active) |
+| **Docker Container** | `spark-brain` | `spark-brain` (Running) |
+| **Single-Stream Decode** | Target: ~36 tok/s (code) / ~21–27 tok/s (free-form) | *TBD (Benchmarking in progress...)* |
+| **Multi-Stream Concurrency** | Target: ~57 to 157 tok/s aggregate (4–8 streams) | *TBD (Benchmarking in progress...)* |
+| **Cold Prefill** | Target: ~2,000–2,500 tok/s | *TBD (Benchmarking in progress...)* |
+| **Warm Prefill (Radix Cache)** | Target: up to ~139,000 tok/s (56× acceleration) | *TBD (Benchmarking in progress...)* |
+| **Context Window** | Native 262,144 tokens (exact needle recall) | *TBD (Benchmarking in progress...)* |
+| **Coding & Agentic Quality** | Target: 12/12 code pass / 86/100 tool-eval-bench | *TBD (Benchmarking in progress...)* |
 
 ---
 
