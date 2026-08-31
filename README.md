@@ -88,6 +88,25 @@ uv run benchmark/benchmark_smarts.py
 
 ---
 
+## Visual Benchmark Evidence (Release v1.0.0 Testing)
+
+The visual benchmark artifacts from our baseline **v1.0.0 release testing** on DGX Spark:
+
+### 1. Spark Arena Verified Sweep
+[![Spark Arena Benchmark Results](assets/benchmark_spark-arena_qwen38_flash.png)](https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950)
+> 🔗 [spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950](https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950)
+
+### 2. Speed, TTFT & Context Scaling
+![Speed benchmark results](assets/benchmark_speed_qwen38_flash.png)
+
+### 3. Tool-Eval Agentic Benchmark (93/100, 14/15 PASS)
+![Smarts benchmark scenarios](assets/benchmark_smarts_qwen38_flash_1.png)
+![Smarts benchmark score](assets/benchmark_smarts_qwen38_flash_2.png)
+
+*For detailed comparative analysis between v1.0.0 and v1.1.0, see [`EXPERIMENTS.md`](EXPERIMENTS.md).*
+
+---
+
 ## OpenAI-Compatible API Usage
 
 ```bash
@@ -108,20 +127,20 @@ curl http://localhost:8000/v1/chat/completions \
 
 The container mounts 4 critical patches over `lmsysorg/sglang:qwen38flashnext`:
 
-1. [`patches/qwen4_exp_nvfp4.py`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/patches/qwen4_exp_nvfp4.py): Enables GPU-resident HashK table loading (`SGLANG_QWEN4_PLE_HASHK`) and packed NVFP4 mode.
-2. [`patches/flash_fwd.py`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/patches/flash_fwd.py): Fixes variable-length TMA-O epilogue MLIR crash in FlashAttention-4.
-3. [`patches/qwen_sparse_attn_backend.py`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/patches/qwen_sparse_attn_backend.py): Bypasses buggy SM100-only TRTLLM-gen decode on SM121 (preventing silent `!!!!` NaN tokens) and implements hole-tolerant QSA gather with masked SDPA.
-4. [`patches/sparse_attn.py`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/patches/sparse_attn.py): Fixes long-context Triton FP8 RHS dot product compilation error.
+1. [`patches/qwen4_exp_nvfp4.py`](patches/qwen4_exp_nvfp4.py): Enables GPU-resident HashK table loading (`SGLANG_QWEN4_PLE_HASHK`) and packed NVFP4 mode.
+2. [`patches/flash_fwd.py`](patches/flash_fwd.py): Fixes variable-length TMA-O epilogue MLIR crash in FlashAttention-4.
+3. [`patches/qwen_sparse_attn_backend.py`](patches/qwen_sparse_attn_backend.py): Bypasses buggy SM100-only TRTLLM-gen decode on SM121 (preventing silent `!!!!` NaN tokens) and implements hole-tolerant QSA gather with masked SDPA.
+4. [`patches/sparse_attn.py`](patches/sparse_attn.py): Fixes long-context Triton FP8 RHS dot product compilation error.
 
-See [`HOW_IT_WORKS.md`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/HOW_IT_WORKS.md) and [`docs/LANDMINES.md`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/docs/LANDMINES.md) for full architectural deep dive and runtime ledger.
+See [`EXPERIMENTS.md`](EXPERIMENTS.md) and [`docs/LANDMINES.md`](docs/LANDMINES.md) for full architectural deep dive, ablations, and runtime ledger.
 
 ---
 
 ## Operational & Reliability Tooling
 
-- [`tools/poison_sentinel.sh`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/tools/poison_sentinel.sh): Cron canary running deep-context probes to detect and auto-recover from any silent corruption.
-- [`tools/watchdog.sh`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/tools/watchdog.sh): Watchdog script detecting silent wedges (accept-len 1.00 while `/health` is green).
-- [`tools/bench_cc3.py`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/tools/bench_cc3.py): Wall-clock window aggregate concurrency benchmark with per-request output validity verification.
+- [`tools/poison_sentinel.sh`](tools/poison_sentinel.sh): Cron canary running deep-context probes to detect and auto-recover from any silent corruption.
+- [`tools/watchdog.sh`](tools/watchdog.sh): Watchdog script detecting silent wedges (accept-len 1.00 while `/health` is green).
+- [`tools/bench_cc3.py`](tools/bench_cc3.py): Wall-clock window aggregate concurrency benchmark with per-request output validity verification.
 
 ---
 
@@ -129,4 +148,4 @@ See [`HOW_IT_WORKS.md`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spa
 
 - Code & scripts: MIT License.
 - Upstream patches: subject to original licenses (SGLang Apache-2.0 / FlashAttention BSD-3).
-- See [`CITATION.cff`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/CITATION.cff) for academic and technical attribution.
+- See [`CITATION.cff`](CITATION.cff) for academic and technical attribution.
