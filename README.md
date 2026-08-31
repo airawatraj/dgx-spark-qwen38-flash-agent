@@ -50,16 +50,17 @@ Single-stream decode acceleration via NEXTN speculative decoding (2.57 draft tok
 
 ---
 
-### 2. Spark Arena Speed & Concurrency Benchmark (`benchmark_speed_arena.py`)
-Measured prefill and decode throughput at 8,192 context depth across concurrencies 1, 2, and 4:
+### 2. Baseline Speed & Concurrency Suite (`benchmark/benchmark_speed.py`)
+Measures unspeculative baseline decode throughput on raw text (`11.3 tok/s`), TTFT (`173 ms`), concurrency scaling up to 8 streams, and context window scaling up to 260,008 tokens:
 
-![Spark Arena Speed Results](assets/v11_benchmark_speed.png)
+![Baseline Speed Benchmark Results](assets/v11_benchmark_speed.png)
 
-| Test Condition | Prefill Throughput | Generation Throughput | Peak Generation |
-|---|---|---|---|
-| `pp2048 @ d8192 (c1)` | **2,406.40 tok/s** | **29.07 tok/s** | **29.67 tok/s** |
-| `pp2048 @ d8192 (c2)` | **2,499.68 tok/s** | **38.89 tok/s** | **47.00 tok/s** |
-| `pp2048 @ d8192 (c4)` | **1,893.24 tok/s** | **28.69 tok/s** | **48.33 tok/s** |
+| Metric | Result | Notes |
+|---|---|---|
+| **Average Baseline TPS** | **11.3 tok/s** | Raw unspeculative memory bandwidth floor |
+| **Average TTFT** | **173 ms** | Single-session latency |
+| **8-Stream Concurrency** | **27.7 agg tok/s** | Concurrency scaling on raw text |
+| **Max Context Verified** | **260,008 tokens** | Native 262k context scaling (100% PASS) |
 
 ---
 
