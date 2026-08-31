@@ -6,7 +6,7 @@
 ![Runtime](https://img.shields.io/badge/runtime-SGLang%20%2B%20HashK%20GPU--PLE-orange)
 ![Hardware](https://img.shields.io/badge/hardware-NVIDIA%20DGX%20Spark-brightgreen?logo=nvidia&logoColor=white)
 ![Context](https://img.shields.io/badge/context-262K%20Native-blue)
-[![Spark Arena](https://img.shields.io/badge/spark--arena-verified-darkgreen)](https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950)
+[![Spark Arena](https://img.shields.io/badge/spark--arena-verified-darkgreen)](https://spark-arena.com/benchmark/652833c3-7506-4257-96f9-6a8e17d32a9c)
 ![Tool Eval](https://img.shields.io/badge/tool--eval-100%2F100%20(15%2F15%20PASS)-success)
 ![Reasoning](https://img.shields.io/badge/reasoning-qwen3-black)
 ![Quantization](https://img.shields.io/badge/quantization-NVFP4-purple)
@@ -74,7 +74,10 @@ Evaluation across 15 complex agent scenarios with multi-step tool calls, paramet
 ---
 
 ### 4. Full-Context Multi-Depth Sweep (`benchmark/results_full.csv`)
-Complete 3-hour multi-depth sweep from depth 0 to 131,072 tokens across concurrencies 1, 2, 4, and 8:
+Complete multi-depth sweep from depth 0 to 131,072 tokens across concurrencies 1, 2, 4, and 8:
+
+[![Spark Arena Interactive Benchmark Results](assets/v11_benchmark_spark_arena.png)](https://spark-arena.com/benchmark/652833c3-7506-4257-96f9-6a8e17d32a9c)
+*Click the benchmark chart above to view the live interactive performance frontier and depth curves on [spark-arena.com](https://spark-arena.com/benchmark/652833c3-7506-4257-96f9-6a8e17d32a9c).*
 
 | Context Depth | $c=1$ Prefill Speed | $c=1$ Decode TPS | $c=2$ Decode TPS | $c=8$ Peak Decode TPS |
 |---|:---:|:---:|:---:|:---:|
