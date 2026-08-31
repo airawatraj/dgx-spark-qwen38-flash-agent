@@ -1,17 +1,31 @@
 #!/usr/bin/env bash
-# docker/build.sh — Build the patched vLLM image for Qwen3.8-Flash-Next with PLE disk mmap
+# docker/build.sh — Prepare Docker image and HashK artifact for Cogni-Brain
 set -euo pipefail
 
-IMAGE_TAG="${IMAGE_TAG:-qwen38-flash-dgx}"
+IMAGE="${IMAGE:-lmsysorg/sglang:qwen38flashnext}"
 
-echo "=== Building Docker image: $IMAGE_TAG ==="
-echo "  Source Dockerfile: Dockerfile"
-echo "  Patch module:      src/vllm_ple_mmap.py"
+echo "================================================================="
+echo "=== Cogni-Brain Container & Artifact Preparation ==="
+echo "================================================================="
+echo "  SGLang Image:   $IMAGE"
+echo "  Runtime:        Bind-mount patched forward runners & kernels"
 echo
 
-docker build -t "$IMAGE_TAG" .
+echo "[1/2] Pulling official SGLang Qwen3.8-Flash-Next image..."
+docker pull "$IMAGE"
 
 echo
-echo "✓ Docker image built successfully: $IMAGE_TAG"
-echo "Next: bash setup/download_model.sh"
-echo "      bash docker/start.sh"
+echo "[2/2] Checking HashK PLE artifact..."
+if [ -f "ple_hashk_R4.pt" ]; then
+  echo "✓ HashK artifact ple_hashk_R4.pt exists ($(du -h ple_hashk_R4.pt | cut -f1))."
+else
+  echo "HashK artifact ple_hashk_R4.pt not found."
+  echo "Building now via setup/build_hashk.sh..."
+  bash setup/build_hashk.sh
+fi
+
+echo
+echo "================================================================="
+echo "✓ Ready to serve Cogni-Brain!"
+echo "Next: bash docker/start.sh"
+echo "================================================================="

@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# docker/start-yarn.sh — Launch Qwen3.8-Flash-Next with 500K YaRN ultra-long context
-#
-# Scales the context window up to 500,000 tokens using YaRN RoPE factor 4 scaling.
+# docker/start-yarn.sh — Launch Cogni-Brain with 500K extended context
 set -euo pipefail
 
-export YARN=1
-export CTX=500000
+export CTX="${CTX:-500000}"
 export SEQS="${SEQS:-2}"
-export GPU_MEM="${GPU_MEM:-0.85}"
+export MEM_FRACTION="${MEM_FRACTION:-0.95}"
 
-echo "=== Launching Qwen3.8-Flash-Next in 500K YaRN Mode ==="
-echo "  Context length:  500,000 tokens"
-echo "  YaRN scaling:    factor 4.0"
+echo "================================================================="
+echo "=== Launching Cogni-Brain in 500K Extended Context Mode ==="
+echo "================================================================="
+echo "  Context length:  $CTX tokens"
+echo "  Concurrent seqs: $SEQS"
+echo "  Memory fraction: $MEM_FRACTION"
 echo
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

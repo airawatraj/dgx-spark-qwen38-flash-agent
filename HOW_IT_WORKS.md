@@ -1,115 +1,93 @@
-# How It Works: Qwen3.8-Flash-Next on NVIDIA DGX Spark
+# How It Works: Qwen3.8-Flash-Next on NVIDIA DGX Spark (Cogni-Brain)
 
 ## 1. The Unified Memory Challenge on DGX Spark (GB10)
 
-Qwen3.8-Flash-Next is a flagship hybrid sparse Mixture-of-Experts (MoE) model with an unconventional architectural component: a **51B-parameter Pre-computed Learned Embedding (PLE) / n-gram embedding table**. 
+Qwen3.8-Flash-Next is a flagship hybrid sparse Mixture-of-Experts (MoE) model (~176B total params, ~6B active per token) featuring a **51.2 GB Pre-computed Learned Embedding (PLE) / n-gram embedding table**.
 
 The `RadixArk/Qwen3.8-Flash-Next-NVFP4` checkpoint breaks down into:
 
 | Component | Format | Disk / Parameter Size |
 |---|---|---|
-| Routed MoE Experts (48 layers × 512 experts, 10 active) | NVFP4 | ~63 GiB |
-| Dense Attention / GDN / QSA / Gate / Shared Experts / lm_head / MTP | BF16 / FP8 | ~15 GiB |
-| **N-gram (PLE) Embedding Table** (16 heads × 20M rows × 160 dims) | FP8 e4m3 (+ scale) | **~44 GiB** |
-| **Total Model Checkpoint** | | **~122 GiB** |
+| Routed MoE Experts (48 layers × 512 experts, 10 active) | NVFP4 | ~60.4 GB |
+| Dense Attention / GDN / QSA / Gate / Shared Experts / lm_head | BF16 / FP8 | ~15.0 GB |
+| **N-gram (PLE) Embedding Table** (16 heads × 20M rows × 160 dims) | FP8 e4m3 (+ scale) | **51.2 GB** |
+| MTP Next-Token Prediction Speculative Head | NVFP4 / BF16 | ~8.0 GB |
+| **Total Model Checkpoint** | | **~135 GB** |
 
-### Why Standard Offloading Fails on DGX Spark
-An NVIDIA DGX Spark features **128 GB unified memory**, shared seamlessly between the Grace CPU and Blackwell GPU cores. After deducting ~8–10 GB for the operating system kernel, drivers, and Docker runtime, approximately **118–120 GB** is usable.
+### Why DGX Spark Unified Memory (UMA) Needs Special Handling
+An NVIDIA DGX Spark features **128 GB unified memory**, shared seamlessly between the Grace CPU and Blackwell GPU cores. After deducting ~8–10 GB for the operating system kernel, drivers, and runtime, approximately **115–118 GB** is usable.
 
-Keeping 122 GiB of weights permanently resident leaves **0 GB for the KV cache**, making it impossible to serve. 
-
-Standard vLLM offloading (`VLLM_PLE_CPU_OFFLOAD=1`) moves parameters to pinned *host RAM*. While effective on multi-socket PCIe systems with separate CPU memory and discrete VRAM, on a DGX Spark host RAM and GPU VRAM reside in the **same physical unified pool**. Moving bytes between host and device pinned buffers does not free a single byte of physical memory.
-
----
-
-## 2. The Breakthrough: PLE Disk MMAP
-
-The PLE n-gram embedding table is an index **lookup**, not a dense matrix multiplication or convolution.
-- For each token, the model reads exactly **16 rows × 160 bytes = 2.56 KB** at hashed addresses.
-- Natural language and code demonstrate high n-gram locality: frequent tokens hit a small, concentrated subset of rows that remain hot in the operating system's unified page cache.
-- Even an extensive 20,000-token prompt requires only ~320,000 row reads (~1.3 GB), which takes milliseconds on the DGX Spark's onboard NVMe SSD.
-
-By memory-mapping (`mmap`) the checkpoint's `model-plefp8-*.safetensors` shards directly from NVMe, weights loaded into unified memory drop from **122 GiB to ~76 GiB**.
-
-This frees **~52 GiB of unified pool** for the KV cache (~720,000–790,000 token capacity at `GPU_MEM=0.85`), enabling concurrent sessions at native 262K context or a single 500,000-token request with YaRN.
+Keeping 135 GB of weights permanently resident causes an out-of-memory error (OOM) before any KV cache can allocate.
 
 ---
 
-## 3. The Patch Architecture (`src/vllm_ple_mmap.py`)
+## 2. The Breakthrough: HashK GPU-Resident Compression
 
-When `VLLM_PLE_MMAP=1` is set, the patch dynamically hooks `Qwen3_8FlashNextNGramEmbedding` inside vLLM:
+The PLE table is not a dense matmul; it is a **hash-addressed memory gather** followed by a learned gate and grouped norm. Because it has no fixed dictionary, it can be re-hashed into a **4× smaller footprint (12.8 GB)** trainlessly:
 
 ```mermaid
 flowchart TD
-    subgraph Host_Storage ["NVMe Fast Storage"]
-        ST["model-plefp8-*.safetensors<br/>(44 GiB PLE shards)"]
+    subgraph OfflineBuild ["1. Offline Build (~6 min GPU step)"]
+        RawPLE["51.2 GB Raw FP8 PLE Shards<br/>(320M rows × 160 dims)"]
+        SplitMix["SplitMix64 Polynomial Re-hash<br/>(k=2 sub-tables, dims 0:80 & 80:160)"]
+        MeanPool["Unbiased Mean-Pooling<br/>(1/sqrt(R) theoretical limit)"]
+        Ridge["Per-Head 160x160 Ridge Linear Projections"]
+        Artifact["ple_hashk_R4.pt (12.8 GB)"]
+        
+        RawPLE --> SplitMix --> MeanPool --> Ridge --> Artifact
     end
 
-    subgraph Memory_Map ["Kernel Page Cache / MMAP"]
-        MM["Zero-Copy np.memmap views<br/>Multithreaded ThreadPoolExecutor (32 workers)"]
+    subgraph GPUResident ["2. Single DGX Spark GPU VRAM (~97 GB Total Resident)"]
+        Artifact --> GPUPLE["GPU-Resident HashK Table (12.8 GB)"]
+        Weights["MoE & Backbone Weights (~60.4 GB)"]
+        MTP["MTP NEXTN Speculative Head (8.0 GB)"]
+        FP8KV["FP8 KV Cache Pool (700k+ Tokens Headroom)"]
     end
-
-    subgraph vLLM_Runtime ["vLLM Engine (76 GiB Resident Pool)"]
-        PH["Placeholder Embedding<br/>(Lightweight zero-weight stub)"]
-        OP["Custom Splitting Op<br/>vllm::ple_mmap_lookup"]
-        QSA["QSA Sparse Attention & GDN Layers"]
-        MTP["MTP Head (k=2 Speculative Tokens)"]
-    end
-
-    ST --> MM
-    MM --> OP
-    PH --> OP
-    OP --> QSA
-    QSA --> MTP
 ```
 
-### 1. `__init__` Hook
-Substitutes the 44 GiB `VocabParallelEmbedding` with a lightweight `_MmapNgramEmbedding` placeholder. No large embedding tensor is allocated during model construction.
-
-### 2. `load_weights` Hook
-Ignores the 128 PLE shard tensors during weight ingestion (as they are served dynamically from disk), registers only the scalar FP8 `weight_scale`, and opens memory-mapped file descriptors to the safetensors shards.
-
-### 3. `forward_impl` & Custom Splitting Op
-Wraps the gather in a custom PyTorch op `vllm::ple_mmap_lookup`. This ensures:
-- `torch.compile` treats the gather as an opaque operation.
-- vLLM schedules the operation outside captured CUDA graph segments via `-cc.cudagraph_mode=PIECEWISE`.
+### Key Properties of HashK:
+1. **Zero Host Transfer**: The entire 12.8 GB table lives directly in GPU memory, eliminating all CPU disk mmap latency, page faults, and thread synchronization barriers.
+2. **Reconstruction Cosine ~0.50 with Full Model Quality**: The theoretical limit for R=4 mean-pooling is $1/\sqrt{4} = 0.50$. Because Qwen's PLE layer passes the retrieved vectors through 1D convolution and grouped-norm gating into the residual stream, the model degrades gracefully and actually eliminates runaway-verbosity failure modes (12/12 on executed-code benchmarks, 100% needle recall at 222k tokens).
+3. **Frees 16 GB for NEXTN Speculative Decoding**: Compressing from 28.8 GB / 51.2 GB to 12.8 GB leaves room for the **8 GB MTP draft head**, enabling 3-step NEXTN speculative decoding (~2× decode acceleration).
 
 ---
 
-## 4. Workarounds for Blackwell (sm_121) Architecture
+## 3. Serving Engine: SGLang with Blackwell SM121 Patches
 
-Running Qwen3.8-Flash-Next on Blackwell GB10 required resolving three critical runtime edge cases:
+The container `spark-brain` runs SGLang (`lmsysorg/sglang:qwen38flashnext`) with 4 critical patches bind-mounted over the image:
 
-1. **Host-to-Device Copy During CUDA Graph Capture**:
-   Because mmap gather runs CPU instructions and performs pageable host-to-device transfers, it cannot execute inside an active CUDA graph. Declaring `vllm::ple_mmap_lookup` as a splitting op in `PIECEWISE` graph mode allows vLLM to cleanly segment CUDA graphs around the gather.
+### 1. `qwen4_exp_nvfp4.py`
+Integrates HashK GPU-resident table loading (`SGLANG_QWEN4_PLE_HASHK`) and optional load-time NVFP4 packing (`SGLANG_QWEN4_PLE_NVFP4`).
 
-2. **Inductor Int64 Indexing Bounds Assert**:
-   Stock Inductor compilation on sm_121 triggers an out-of-bounds assert during n-gram index calculation. The custom op isolates the lookup from PyTorch Inductor graph compilation.
+### 2. `flash_fwd.py` (FlashAttention-4 Guard Fix)
+Corrects a bug in upstream `flash-attn-4` where variable-length sequence guards (`mCuSeqlensQ is None`) were disabled, causing TMA-O epilogue MLIR crashes on SM121.
 
-3. **Prefix Caching with GDN**:
-   Prefix caching with Linear Attention / GDN in vLLM triggers `CUBLAS_STATUS_INTERNAL_ERROR` on repeated identical prompts. Disabling prefix caching (`--no-enable-prefix-caching`) and utilizing chunked prefill (`--enable-chunked-prefill --max-num-batched-tokens 8192`) provides sustained stability.
+### 3. `qwen_sparse_attn_backend.py` (SM121 QSA Decode Gather)
+- Bypasses TRTLLM-gen decode kernels on SM121 (which emit silent NaN / token-0 `!!!!` corruption).
+- Implements direct `req_to_token` gather with masked SDPA, avoiding uninitialized hole bugs in the upstream `_compact_kv` kernel.
+
+### 4. `sparse_attn.py` (Long-Prefill FP8 Dot Fix)
+Fixes a Triton compilation failure (`Unsupported rhs dtype fp8e4nv`) when computing attention dot products in long-context prefill.
 
 ---
 
-## 5. Long-Context Scaling with YaRN (Up to 500K Tokens)
+## 4. Speculative Decoding & Mamba State Rollback
 
-Qwen3.8-Flash-Next natively supports 262,144 tokens. Using YaRN RoPE interpolation, context is scaled to **500,000 tokens** via:
+NEXTN speculative decoding drafts 4 candidate tokens per forward pass. When tokens are rejected by the target model:
+- The DeltaNet recurrent state must be cleanly rewound.
+- Enabled via `--mamba-scheduler-strategy extra_buffer --mamba-track-interval 64`.
+- Prevents recurrent state poisoning and maintains 100% token generation accuracy across long contexts.
 
-```json
-{
-  "text_config": {
-    "rope_parameters": {
-      "mrope_interleaved": true,
-      "mrope_section": [11, 11, 10],
-      "rope_type": "yarn",
-      "rope_theta": 10000000,
-      "partial_rotary_factor": 0.25,
-      "factor": 4.0,
-      "original_max_position_embeddings": 262144
-    }
-  }
-}
-```
+---
 
-### Speculative Draft Model Alignment
-When YaRN is active alongside MTP speculative decoding, the draft head's `max_model_len` must be explicitly synchronized with the target context length via `--speculative-config '{"method":"mtp","num_speculative_tokens":2,"max_model_len":500000}'` to prevent mamba block size mismatches.
+## 5. Performance Metrics on Single DGX Spark
+
+| Metric | Result |
+|---|---|
+| **Single-Stream Decode (Code / Structured)** | **~36 tok/s** |
+| **Single-Stream Decode (Free-form)** | **~21–27 tok/s** |
+| **Cold Prefill Throughput** | **~2,000–2,500 tok/s** |
+| **Warm Prefill Throughput (Radix Cache)** | **~133,000–139,000 tok/s** |
+| **Concurrency (4–8 Streams)** | **~57 to 157 tok/s aggregate** |
+| **Native Context Window** | **262,144 tokens** |
+| **Agentic Quality (tool-eval-bench)** | **86/100 Quality (151/176 points)** |

@@ -1,73 +1,89 @@
-# Running Cogni-Brain on DGX Spark · Qwen3.8-Flash-Next NVFP4 + PLE Disk MMAP
+# Running Cogni-Brain on DGX Spark · Qwen3.8-Flash-Next NVFP4 + HashK GPU PLE & SGLang NEXTN
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)
 ![Base Model](https://img.shields.io/badge/base%20model-Qwen3.8--Flash--Next--NVFP4-limegreen)
-![Speculative](https://img.shields.io/badge/speculative-MTP%20(K%3D2)-purple)
-![Runtime](https://img.shields.io/badge/runtime-vLLM%20%2B%20PLE%20MMAP-orange)
+![Speculative](https://img.shields.io/badge/speculative-NEXTN%20(3--step)-purple)
+![Runtime](https://img.shields.io/badge/runtime-SGLang%20%2B%20HashK%20GPU--PLE-orange)
 ![Hardware](https://img.shields.io/badge/hardware-NVIDIA%20DGX%20Spark-brightgreen?logo=nvidia&logoColor=white)
-![Context](https://img.shields.io/badge/context-262K%20%7C%20500K%20YaRN-blue)
+![Context](https://img.shields.io/badge/context-262K%20Native-blue)
 [![Spark Arena](https://img.shields.io/badge/spark--arena-verified-darkgreen)](https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950)
-![Tool Eval](https://img.shields.io/badge/tool--eval-93%2F100-success)
+![Tool Eval](https://img.shields.io/badge/tool--eval-86%2F100%20(151%2F176)-success)
 ![Reasoning](https://img.shields.io/badge/reasoning-qwen3-black)
 ![Quantization](https://img.shields.io/badge/quantization-NVFP4-purple)
 
-This repo documents inference tuning and serving of [RadixArk/Qwen3.8-Flash-Next-NVFP4](https://huggingface.co/RadixArk/Qwen3.8-Flash-Next-NVFP4) (~176B total: 125B MoE backbone + 51B n-gram PLE table, 6B active) on a single NVIDIA DGX Spark / GB10 (128 GB unified memory).
+This repository documents running [RadixArk/Qwen3.8-Flash-Next-NVFP4](https://huggingface.co/RadixArk/Qwen3.8-Flash-Next-NVFP4) (~176B total params: 125B MoE backbone + 51B n-gram PLE table, 6B active) on a **single NVIDIA DGX Spark / GB10** (128 GB unified memory), served as **Cogni-Brain** in container **`spark-brain`**.
+
+By compressing the 51.2 GB n-gram PLE table 4× into a **12.8 GB GPU-resident HashK artifact** (`ple_hashk_R4.pt`), the entire model fits directly in GPU VRAM (~97 GB resident), freeing memory for the **8 GB MTP draft head** (NEXTN speculative decoding), an **FP8 KV cache** (~700k+ tokens pool), and **RadixAttention** (up to ~139,000 tok/s warm prefill).
 
 > ⚠️ **Personal workstation setup. Not for enterprise use. Use at your own risk.**
 
 ---
 
-## What is Qwen3.8-Flash-Next?
+## Performance Overview
 
-[Qwen3.8-Flash-Next-NVFP4](https://huggingface.co/RadixArk/Qwen3.8-Flash-Next-NVFP4) is served here as **Cogni-Brain** — a consistent model alias across agent frameworks (Claude Code, Continue, Open WebUI, etc.) regardless of which model is running underneath.
-
-Key characteristics:
-- **Zero-Copy PLE Disk MMAP** — Serves the 44 GiB FP8 n-gram PLE table directly from NVMe via `mmap` (`src/vllm_ple_mmap.py`), dropping resident memory from 122 GiB to ~76 GiB and unlocking ~52 GiB of unified pool for the KV cache (~720k–790k tokens).
-- **176B Total / 6B Active MoE** — Deep sparse Mixture-of-Experts architecture with extreme parameter efficiency and high throughput.
-- **Multi-Token Prediction (MTP, $k=2$)** — Native built-in speculative draft head yielding 25–35+ tok/s decode.
-- **QSA Sparse Attention + GDN Linear Attention** — Fast, memory-efficient attention preserving linear $O(N)$ prefill scaling.
-- **262K Native Context / 500K YaRN** — Native 262,144 token context window, expandable up to 500,000 tokens via YaRN RoPE scaling (`docker/start-yarn.sh`).
-- **Native Tool Calling & Reasoning** — Built-in `qwen3_coder` tool parser and `qwen3` reasoning parser (93/100 tool-eval benchmark score, 14/15 PASS).
+| Dimension | Specification & Results |
+|---|---|
+| **Served Model Name** | `Cogni-Brain` |
+| **Docker Container** | `spark-brain` |
+| **Single-Stream Decode** | **~36 tok/s (code)** / **~21–27 tok/s (free-form)** |
+| **Multi-Stream Concurrency** | **~57 to 157 tok/s aggregate** across 4–8 streams |
+| **Cold Prefill** | **~2,000–2,500 tok/s** |
+| **Warm Prefill (Radix Cache)** | **up to ~139,000 tok/s** (56× acceleration) |
+| **Context Window** | **262,144 tokens** native context (exact needle recall at 222k tokens) |
+| **Coding & Agentic Quality** | **12/12 executed-code pass**, **86/100 tool-eval-bench quality** (151/176 points) |
 
 ---
 
 ## Quick Start
 
-> ⚠️ **Note:** Run `download_model.sh` once before first launch (~122 GB total). Run in `tmux` if on SSH.
-
+### 1. Verify Environment & Dependencies
 ```bash
-# 1. Verify prerequisites (Docker, GPU runtime, uv, HF auth)
 bash setup/install.sh
-
-# 2. Download model weights — one-time, ~122 GB (run in tmux on SSH)
-bash setup/download_model.sh
-
-# 3. Build patched vLLM image
-bash docker/build.sh
-
-# 4. Launch serving container (vLLM PLE MMAP, 262K context, MTP=2)
-bash docker/start.sh
-
-# 5. Follow initialization logs (wait for "Application startup complete", ~8 min on first boot)
-docker logs -f spark-brain
-
-# 6. Check container status & health
-bash docker/status.sh
-bash benchmark/smoke_test.sh localhost:8000
-
-# 7. Run benchmarks
-uv run benchmark/benchmark_speed.py
-uv run benchmark/benchmark_smarts.py
-# Optional: full spark-arena-style overnight sweep
-uv run benchmark/benchmark_speed_arena.py --save-result benchmark/results_full.csv
 ```
 
-### 500K Long-Context Launch (YaRN Mode)
-
-To launch with YaRN RoPE factor 4 scaling for up to 500,000 tokens of context:
-
+### 2. Download Checkpoint (~135 GB, one-time)
 ```bash
-bash docker/start-yarn.sh
+# Run inside tmux on remote SSH:
+bash setup/download_model.sh
+```
+
+### 3. Build HashK Compressed PLE Table (~6 min on GPU, one-time)
+```bash
+bash setup/build_hashk.sh
+# Creates ple_hashk_R4.pt (12.8 GB) in repo root
+```
+
+### 4. Launch Container (`spark-brain` serving `Cogni-Brain`)
+```bash
+# Default launch on port 8000 (HashK + NEXTN spec decode + FP8 KV cache)
+bash docker/start.sh
+
+# Or with custom port / reasoning level:
+PORT=8000 THINKING=medium bash docker/start.sh
+```
+
+### 5. Check Health & Logs
+```bash
+# Follow boot logs (~8-9 min warm boot):
+docker logs -f spark-brain
+
+# Inspect status & memory:
+bash docker/status.sh
+
+# Run smoke test:
+bash benchmark/smoke_test.sh localhost:8000
+```
+
+### 6. Run Benchmarks
+```bash
+# Speed, TTFT & Concurrency suite:
+uv run benchmark/benchmark_speed.py
+
+# Multi-stream & depth speed probe:
+python3 tools/speed_probe.py
+
+# Agentic tool calling benchmark:
+uv run benchmark/benchmark_smarts.py
 ```
 
 ---
@@ -75,13 +91,12 @@ bash docker/start-yarn.sh
 ## OpenAI-Compatible API Usage
 
 ```bash
-# Basic completion / reasoning request
 curl http://localhost:8000/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
     "model": "Cogni-Brain",
     "messages": [
-      {"role": "user", "content": "Explain how speculative decoding works in sparse MoE models."}
+      {"role": "user", "content": "Explain how speculative decoding works in sparse MoE architectures."}
     ],
     "max_tokens": 512
   }'
@@ -89,127 +104,29 @@ curl http://localhost:8000/v1/chat/completions \
 
 ---
 
-## Benchmarks
+## Architecture & Upstream Blackwell (SM121) Patches
 
-### Speed Benchmark (custom script)
+The container mounts 4 critical patches over `lmsysorg/sglang:qwen38flashnext`:
 
-```bash
-# Full run (TPS, TTFT, concurrent sessions, context window)
-uv run benchmark/benchmark_speed.py
+1. [`patches/qwen4_exp_nvfp4.py`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/patches/qwen4_exp_nvfp4.py): Enables GPU-resident HashK table loading (`SGLANG_QWEN4_PLE_HASHK`) and packed NVFP4 mode.
+2. [`patches/flash_fwd.py`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/patches/flash_fwd.py): Fixes variable-length TMA-O epilogue MLIR crash in FlashAttention-4.
+3. [`patches/qwen_sparse_attn_backend.py`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/patches/qwen_sparse_attn_backend.py): Bypasses buggy SM100-only TRTLLM-gen decode on SM121 (preventing silent `!!!!` NaN tokens) and implements hole-tolerant QSA gather with masked SDPA.
+4. [`patches/sparse_attn.py`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/patches/sparse_attn.py): Fixes long-context Triton FP8 RHS dot product compilation error.
 
-# Skip slower subtests for a quicker check
-uv run benchmark/benchmark_speed.py --skip-context
-uv run benchmark/benchmark_speed.py --skip-context --skip-concurrent
-
-# Custom endpoint or model alias
-uv run benchmark/benchmark_speed.py --host localhost --port 8000 --model Cogni-Brain
-```
-
-> Tests: baseline TPS, TPS vs output length, concurrent sessions (1–8), context window (up to 262K), health & KV stats.
-
-### Smarts Benchmark (tool-eval-bench)
-
-```bash
-# Quick smoke test (recommended first run)
-uv run benchmark/benchmark_smarts.py
-
-# Throughput sweep
-uv run benchmark/benchmark_smarts.py --mode perf
-
-# Deterministic multi-trial evaluation
-uv run benchmark/benchmark_smarts.py --mode trials --seed 42 --trials 3
-```
-
-> Evaluates: tool selection, parameter precision, multi-step chains, refusal behaviour, error recovery (15 scenarios).
-
-### spark-arena Benchmark (llama-benchy)
-
-Official online benchmark submission: [https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950](https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950)
-
-```bash
-# 1. Standard spark-arena sweep (tests depths 0 to 128K across concurrencies 1, 2, 4, 8)
-uv run benchmark/benchmark_speed_arena.py --save-result benchmark/results_full.csv
-
-# 2. Custom endpoint or single depth
-uv run benchmark/benchmark_speed_arena.py \
-  --base-url http://localhost:8000/v1 \
-  --depth 131072 \
-  --concurrency 1
-```
+See [`HOW_IT_WORKS.md`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/HOW_IT_WORKS.md) and [`docs/LANDMINES.md`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/docs/LANDMINES.md) for full architectural deep dive and runtime ledger.
 
 ---
 
-## Benchmark Results Summary
+## Operational & Reliability Tooling
 
-> Benchmarks run on DGX Spark GB10 · August 2026  
-> vLLM + PLE MMAP Patch · Native MTP ($k=2$) · tool-eval-bench (14/15 PASS, 93/100)
-
-### Spark Arena Benchmark
-
-[![Spark Arena Benchmark Results](assets/benchmark_spark-arena_qwen38_flash.png)](https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950)
-
-> 🔗 **Live Submission & Interactive Charts:** [spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950](https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950)
-
-### Speed & Context Performance
-
-![Speed benchmark results](assets/benchmark_speed_qwen38_flash.png)
-
-| Test | Metric | Result (MTP $k=2$) | Notes |
-|---|---|---|---|
-| Single-stream Decode ($c=1$) | Steady-state TPS | **23–26 tok/s** | Invariant across context depths up to 131K |
-| Single-stream Prefill ($c=1$) | Throughput | **~1,000 tok/s** | Linear $O(N)$ prefill scaling |
-| Multi-stream Decode ($c=8, d=0$) | Peak Aggregate TPS | **92.7 tok/s** | Concurrency scaling on low context |
-| Context Depth | Max Tested | **174K / 262K native** | Scalable to 500K with YaRN |
-| Tool-Use Evaluation | Pass Rate | **93/100 (14/15 PASS)** | Native `qwen3_coder` tool calling |
-
-### Tool-Use Evaluation (Smarts)
-
-![Smarts benchmark scenarios](assets/benchmark_smarts_qwen38_flash_1.png)
-![Smarts benchmark score](assets/benchmark_smarts_qwen38_flash_2.png)
+- [`tools/poison_sentinel.sh`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/tools/poison_sentinel.sh): Cron canary running deep-context probes to detect and auto-recover from any silent corruption.
+- [`tools/watchdog.sh`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/tools/watchdog.sh): Watchdog script detecting silent wedges (accept-len 1.00 while `/health` is green).
+- [`tools/bench_cc3.py`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/tools/bench_cc3.py): Wall-clock window aggregate concurrency benchmark with per-request output validity verification.
 
 ---
 
-## Environment Overrides & Tuning
+## License & Citations
 
-You can override defaults with environment variables before running `docker/start.sh`:
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `PORT` | `8000` | Exposed host port for the OpenAI-compatible API |
-| `CTX` | `262144` | Context length (native 262,144; with `YARN=1` up to 500,000) |
-| `YARN` | `0` | Set to `1` for YaRN RoPE context expansion |
-| `MTP` | `2` | Number of speculative tokens from model's MTP head (`0` to disable) |
-| `SEQS` | `8` | Maximum concurrent sequences |
-| `GPU_MEM` | `0.85` | Fraction of 128 GB pool for weights + KV (~76 GB weights, ~52 GB KV) |
-| `WORKERS` | `32` | Worker threads for multithreaded mmap row gather |
-| `PREWARM` | `0` | Set to `1` to stream table at boot to warm the OS page cache |
-| `CONTAINER_NAME` | `spark-brain` | Name of the Docker container |
-
----
-
-## Repository Structure
-
-```text
-dgx-spark-qwen38-flash-agent/
-├── README.md                      ← this document
-├── HOW_IT_WORKS.md                ← In-depth breakdown of PLE mmap & GB10 fixes
-├── Dockerfile                     ← Patched vLLM image serving PLE table via mmap
-├── src/
-│   ├── vllm_ple_mmap.py           ← Complete PLE disk mmap patch module
-│   └── test_ple_mmap_cpu.py       ← CPU unit test for safetensors gather validation
-├── docker/
-│   ├── build.sh                   ← Docker image builder (qwen38-flash-dgx)
-│   ├── start.sh                   ← Production launch script (262K native, MTP=2)
-│   ├── start-yarn.sh              ← Ultra-long context launch (500K YaRN)
-│   ├── status.sh                  ← Container, health, memory & vLLM metrics inspector
-│   └── stop.sh                    ← Safe container teardown
-├── setup/
-│   ├── install.sh                 ← Dependency and environment preflight checks
-│   └── download_model.sh          ← High-speed model downloader (~122 GB)
-├── benchmark/
-│   ├── benchmark_speed.py         ← TPS, TTFT, concurrency & context benchmark
-│   ├── benchmark_smarts.py        ← tool-eval-bench wrapper (15 agentic scenarios)
-│   ├── benchmark_speed_arena.py   ← Spark-arena compatible throughput sweep
-│   └── smoke_test.sh              ← Health, coherence, prefill & decode verification
-└── assets/                        ← Architecture diagrams and benchmark visualizations
-```
+- Code & scripts: MIT License.
+- Upstream patches: subject to original licenses (SGLang Apache-2.0 / FlashAttention BSD-3).
+- See [`CITATION.cff`](file:///Users/rajrawat/Documents/_AntiGravityIDE/dgx-spark-qwen38-flash-agent/CITATION.cff) for academic and technical attribution.

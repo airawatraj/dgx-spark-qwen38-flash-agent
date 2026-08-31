@@ -15,3 +15,9 @@ benchmark/*.log
 # IDE files
 .idea/
 .vscode/
+
+# Artifacts & Checkpoints
+*.pt
+*.bin
+*.safetensors
+ple_hashk_*.pt
