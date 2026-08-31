@@ -50,10 +50,10 @@ Single-stream decode acceleration via NEXTN speculative decoding (2.57 draft tok
 
 ---
 
-### 2. Llama-Benchy Quick Arena Benchmark (`d8192`)
+### 2. Spark Arena Speed & Concurrency Benchmark (`benchmark_speed_arena.py`)
 Measured prefill and decode throughput at 8,192 context depth across concurrencies 1, 2, and 4:
 
-![Llama-Benchy Speed Results](assets/v11_benchmark_speed.png)
+![Spark Arena Speed Results](assets/v11_benchmark_speed.png)
 
 | Test Condition | Prefill Throughput | Generation Throughput | Peak Generation |
 |---|---|---|---|
@@ -147,7 +147,7 @@ python3 tools/speed_probe.py
 # Agentic tool calling benchmark (100/100):
 uv run benchmark/benchmark_smarts.py
 
-# Spark Arena / Llama-Benchy sweep:
+# Spark Arena full multi-depth sweep:
 uv run benchmark/benchmark_speed_arena.py --save-result benchmark/results_full.csv
 ```
 
