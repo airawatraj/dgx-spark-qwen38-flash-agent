@@ -2,7 +2,7 @@
 """Per-variant speed benchmark: single-stream decode (freeform/code/repro),
 4-stream concurrent aggregate (the user's real workload shape: 1 main + 3
 subagents), deep-context corruption check, accept length. One JSON line out."""
-import os
+import json, os, random, re, subprocess, sys, threading, time, urllib.request
 PORT = os.environ.get("PORT", "8000")
 CONTAINER_NAME = os.environ.get("CONTAINER_NAME", "spark-brain")
 BASE = f"http://127.0.0.1:{PORT}/v1/chat/completions"
