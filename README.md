@@ -93,6 +93,16 @@ Complete multi-depth sweep from depth 0 to 131,072 tokens across concurrencies 1
 
 ---
 
+### 5. Spark Arena Leaderboard Category Snapshot
+*(Snapshot as of 1 September 2026 under filter: `Large MoE (≥ 180B)` · `Single Node` · `Concurrency: 1` · `tg128`)*
+
+Recorded decode throughput of **28.69 tok/s** on a single DGX Spark node (Grace-Blackwell GB10):
+
+[![Spark Arena Leaderboard Category Snapshot](assets/v11_benchmark_leaderboard_180b.png)](https://spark-arena.com/benchmark/652833c3-7506-4257-96f9-6a8e17d32a9c)
+*View the recorded run on [spark-arena.com](https://spark-arena.com/benchmark/652833c3-7506-4257-96f9-6a8e17d32a9c).*
+
+---
+
 ## Speed & Performance Analysis: How it Works on DGX Spark
 
 Understanding why different prompts report different generation speeds on a single DGX Spark (128 GB Grace-Blackwell):
