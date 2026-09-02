@@ -2,12 +2,12 @@
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=white)
 ![Base Model](https://img.shields.io/badge/base%20model-Qwen3.8--Flash--Next--NVFP4-limegreen)
-![Speculative](https://img.shields.io/badge/speculative-NEXTN%20(3--step)-purple)
+![Speculative](https://img.shields.io/badge/speculative-NEXTN%20%283--step%29-purple)
 ![Runtime](https://img.shields.io/badge/runtime-SGLang%20%2B%20HashK%20GPU--PLE-orange)
 ![Hardware](https://img.shields.io/badge/hardware-NVIDIA%20DGX%20Spark-brightgreen?logo=nvidia&logoColor=white)
 ![Context](https://img.shields.io/badge/context-262K%20Native-blue)
 [![Spark Arena](https://img.shields.io/badge/spark--arena-verified-darkgreen)](https://spark-arena.com/benchmark/652833c3-7506-4257-96f9-6a8e17d32a9c)
-![Tool Eval](https://img.shields.io/badge/tool--eval-100%2F100%20(15%2F15%20PASS)-success)
+![Tool Eval](https://img.shields.io/badge/tool--eval-100%2F100%20%2815%2F15%20PASS%29-success)
 ![Reasoning](https://img.shields.io/badge/reasoning-qwen3-black)
 ![Quantization](https://img.shields.io/badge/quantization-NVFP4-purple)
 
