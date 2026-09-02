@@ -32,7 +32,7 @@ By compressing the 51.2 GB n-gram PLE table 4× into a **12.8 GB GPU-resident Ha
 | **Cold Prefill Throughput** | ~2,000–2,500 tok/s | **`2,406 – 2,500 tok/s`** | 2.3× faster than v1.0 baseline |
 | **Warm Prefill (Radix Cache)** | up to ~139,000 tok/s | **`~1.1s – 1.5s TTFT`** on multi-turn | 56× acceleration across agent loops |
 | **Context Window** | 262,144 tokens native | **`260,008 tokens verified`** | 100% coherence, zero corruption |
-| **Agentic Quality (tool-eval-bench)** | 90+ / 100 | **`100 / 100 (15/15 PASS, 30/30 pts)`** | ★★★★★ Perfect score across all 5 categories |
+| **Agentic Quality (tool-eval-bench)** | 90+ / 100 | **`100 / 100 (15/15 PASS, 30/30 pts)`** | Passed all 15 scenarios across 5 categories |
 | **Spark-Arena Full Context Sweep** | Context depths 0 to 131k across $c=1,2,4,8$ | **`results_full.csv` Verified** | Single-stream decode 100% depth-invariant (~23–26 tok/s); Peak $c=8$ reaches 92.7 tok/s |
 
 ---
@@ -108,7 +108,7 @@ Recorded decode throughput of **28.69 tok/s** on a single DGX Spark node (Grace-
 Understanding why different prompts report different generation speeds on a single DGX Spark (128 GB Grace-Blackwell):
 
 1. **Hardware Memory Bandwidth Floor (11.3 tok/s)**:
-   - A 180B NVFP4 model requires reading ~97 GB of weights per autoregressive forward pass.
+   - Serving this architecture requires reading ~97 GB of resident weights per autoregressive forward pass.
    - On the single-channel 273 GB/s unified memory bus of DGX Spark, the raw unspeculative decode floor is:
      $$\text{Base Decode} \approx \frac{273\text{ GB/s}}{97\text{ GB weights}} \approx 10\text{--}12\text{ tok/s}$$
    - When sending raw un-templated text to `/v1/completions`, speculative drafts are not matched ($1.00$ accept length), running at this exact hardware floor.
@@ -221,8 +221,7 @@ See [`EXPERIMENTS.md`](EXPERIMENTS.md) and [`docs/LANDMINES.md`](docs/LANDMINES.
 
 ---
 
-## License & Citations
-
-- Code & scripts: MIT License.
-- Upstream patches: subject to original licenses (SGLang Apache-2.0 / FlashAttention BSD-3).
-- See [`CITATION.cff`](CITATION.cff) for academic and technical attribution.
+## License
+ 
+- Code & scripts: MIT License
+- Upstream patches: Subject to original upstream licenses (SGLang Apache-2.0 / FlashAttention BSD-3)

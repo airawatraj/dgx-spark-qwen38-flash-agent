@@ -44,7 +44,7 @@ Evaluation on 15 complex tool-calling scenarios including multi-step chains, par
 | **Cold Prefill Throughput** | ~1,050 tok/s | **`2,406 – 2,500 tok/s`** | **2.3× faster prefill** |
 | **Warm Prefill (Prefix Cache)** | ~2,500 tok/s | **up to ~139,000 tok/s** | **56× speedup** via RadixAttention |
 | **Concurrency Aggregate (4 streams)** | 38.2 tok/s | **`54.3 tok/s`** *(peak `92.67 tok/s` on 8 streams)* | **1.4× / 1.5× higher aggregate** |
-| **Tool-Eval Agentic Score** | 93 / 100 (14/15 PASS) | **`100 / 100 (15/15 PASS, 30/30 pts)`** | **Flawless 100% agent score** |
+| **Tool-Eval Agentic Score** | 93 / 100 (14/15 PASS) | **`100 / 100 (15/15 PASS, 30/30 pts)`** | **All 15 scenarios passed (30/30 pts)** |
 | **PLE Table Location** | Host page cache via NVMe SSD | **100% GPU Resident** (12.8 GB) | Zero host/CPU synchronization |
 | **KV Cache Capacity** | ~20k–50k tokens (BF16) | **~700k–900k tokens (FP8)** | True 262k context with 4–8 streams |
 | **Depth Scaling Invariance** | Drops with page faults | **100% flat (~23–26 tok/s)** from 0 to 131k context | Zero degradation across depth |
