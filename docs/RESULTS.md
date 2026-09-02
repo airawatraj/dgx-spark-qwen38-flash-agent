@@ -4,6 +4,8 @@ SGLang cookbook + HashK-compressed PLE (12.8 GB) + NEXTN speculative decoding
 prefix cache). 262,144-token context. Cold = unique random prompt per run.
 Raw data: bench_results_suite_v2.json (v1 baseline: bench_results_suite_v1.json).
 
+> **How these numbers relate to the README:** These results are from a custom benchmark harness using unique random prompts with speculative NEXTN decoding (content-dependent speeds). The README's multi-depth table and Spark Arena figures use standardized `tg128` llama-benchy prompts for cross-system comparison. The two are complementary — this document captures real-world decode variance; the README presents standardized benchmark numbers.
+
 ## Context depth, concurrency 1, cold prefill
 | Depth | Tokens  | TTFT    | Prefill      | Decode      |
 |-------|---------|---------|--------------|-------------|

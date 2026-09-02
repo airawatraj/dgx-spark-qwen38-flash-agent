@@ -1,5 +1,7 @@
 # Qwen3.8-Flash-Next 180B on ONE DGX Spark — working layout (2026-08-26)
 
+> ⚠️ **Historical document (v1.0.0 — August 2026).** This records the original vLLM-based setup on port 30000 in container `flashnext`. The current v1.1.0 setup uses **SGLang on port 8000** in container **`spark-brain`** — see the [README](../README.md) and [`docker/start.sh`](../docker/start.sh) for current instructions.
+
 ## What runs
 - Container `flashnext` → sglang server on 0.0.0.0:30000 (OpenAI-compatible)
 - Model: RadixArk/Qwen3.8-Flash-Next-NVFP4 (135 GB checkpoint in the shared HF cache)

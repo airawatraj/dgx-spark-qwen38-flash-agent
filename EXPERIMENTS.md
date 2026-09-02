@@ -11,7 +11,7 @@ The following screenshots capture the verified empirical test suite from the ini
 ### A. Spark Arena Verified Benchmark Submission
 Official verified run submitted to Spark Arena testing context depths from 0 to 128k across concurrencies 1, 2, 4, 8:
 
-[![Spark Arena Benchmark Results](assets/benchmark_spark-arena_qwen38_flash.png)](https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950)
+[![Spark Arena Benchmark Results](assets/v10_benchmark_spark_arena.png)](https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950)
 
 > 🔗 **Interactive Online Submission:** [spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950](https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950)
 
@@ -20,16 +20,16 @@ Official verified run submitted to Spark Arena testing context depths from 0 to 
 ### B. Speed & Context Window Sweep (v1.0.0 Baseline)
 Automated speed probe evaluating single-stream decode TPS, TTFT, concurrency aggregate throughput, and context depth scaling up to 174k tokens:
 
-![Speed benchmark results](assets/benchmark_speed_qwen38_flash.png)
+![Speed benchmark results](assets/v10_benchmark_speed.png)
 
 ---
 
 ### C. Agentic Tool-Calling & Reasoning (tool-eval-bench)
 Evaluation on 15 complex tool-calling scenarios including multi-step chains, parameter precision, refusal behavior, and error recovery:
 
-![Smarts benchmark scenarios](assets/benchmark_smarts_qwen38_flash_1.png)
+![Smarts benchmark scenarios](assets/v10_benchmark_smarts_scenarios.png)
 
-![Smarts benchmark score](assets/benchmark_smarts_qwen38_flash_2.png)
+![Smarts benchmark score](assets/v10_benchmark_smarts_score.png)
 
 *Final Score: **93/100 (14/15 PASS)***
 
@@ -40,14 +40,16 @@ Evaluation on 15 complex tool-calling scenarios including multi-step chains, par
 | Benchmark / Metric | Release v1.0.0 (PLE Disk MMAP) | Release v1.1.0 (HashK + NEXTN) | Delta / Improvement |
 | :--- | :--- | :--- | :--- |
 | **Decode Speed (Code / Structured)** | 23–26 tok/s | **`36.8 tok/s` (code) / `41.8 tok/s` (struct)** | **+44% to +67% faster decode** |
-| **Decode Speed (Free-form / Base)** | 10–15 tok/s | **`22.0 tok/s` (chat) / `11.3 tok/s` (raw)** | **+75% faster decode** |
+| **Decode Speed (Free-form / Base)** | 12.8 tok/s avg | **`22.0 tok/s` (chat) / `11.3 tok/s` (raw)** | **+72% faster chat decode** |
 | **Cold Prefill Throughput** | ~1,050 tok/s | **`2,406 – 2,500 tok/s`** | **2.3× faster prefill** |
 | **Warm Prefill (Prefix Cache)** | ~2,500 tok/s | **up to ~139,000 tok/s** | **56× speedup** via RadixAttention |
-| **Concurrency Aggregate (4 streams)** | 31.3 tok/s | **`54.3 tok/s`** *(peak `92.67 tok/s` on 8 streams)* | **~2–3× higher aggregate** |
+| **Concurrency Aggregate (4 streams)** | 38.2 tok/s | **`54.3 tok/s`** *(peak `92.67 tok/s` on 8 streams)* | **1.4× / 1.5× higher aggregate** |
 | **Tool-Eval Agentic Score** | 93 / 100 (14/15 PASS) | **`100 / 100 (15/15 PASS, 30/30 pts)`** | **Flawless 100% agent score** |
 | **PLE Table Location** | Host page cache via NVMe SSD | **100% GPU Resident** (12.8 GB) | Zero host/CPU synchronization |
 | **KV Cache Capacity** | ~20k–50k tokens (BF16) | **~700k–900k tokens (FP8)** | True 262k context with 4–8 streams |
 | **Depth Scaling Invariance** | Drops with page faults | **100% flat (~23–26 tok/s)** from 0 to 131k context | Zero degradation across depth |
+
+> **Note on v1.0 values:** v1.0 baseline decode (12.8 tok/s) and concurrency (38.2 tok/s at 4 streams, 63.7 at 8 streams) are from `benchmark_speed.py` on raw unspeculative text. v1.0 Spark Arena results used vLLM with MTP speculative decoding under standardized `tg128` prompts — see the [v1.0 Spark Arena submission](https://spark-arena.com/benchmark/a5682a93-73d1-4a65-a486-e71cbe4ba950).
 
 ### Full Multi-Depth Llama-Benchy Matrix (`results_full.csv`)
 

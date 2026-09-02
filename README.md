@@ -79,22 +79,22 @@ Complete multi-depth sweep from depth 0 to 131,072 tokens across concurrencies 1
 [![Spark Arena Interactive Benchmark Results](assets/v11_benchmark_spark_arena.png)](https://spark-arena.com/benchmark/652833c3-7506-4257-96f9-6a8e17d32a9c)
 *Click the benchmark chart above to view the live interactive performance frontier and depth curves on [spark-arena.com](https://spark-arena.com/benchmark/652833c3-7506-4257-96f9-6a8e17d32a9c).*
 
-| Context Depth | $c=1$ Prefill Speed | $c=1$ Decode TPS | $c=2$ Decode TPS | $c=8$ Peak Decode TPS |
-|---|:---:|:---:|:---:|:---:|
-| **0 tokens (Short)** | 832.4 tok/s | **23.73 tok/s** | **38.70 tok/s** | **92.67 tok/s** |
-| **4,096 tokens** | 1,042.1 tok/s | **24.10 tok/s** | **34.07 tok/s** | **60.00 tok/s** |
-| **8,192 tokens** | 1,345.4 tok/s | **23.28 tok/s** | **35.48 tok/s** | **46.33 tok/s** |
-| **16,384 tokens** | 1,034.5 tok/s | **22.15 tok/s** | **21.52 tok/s** | **29.67 tok/s** |
-| **32,768 tokens** | 1,024.5 tok/s | **23.39 tok/s** | 12.23 tok/s | 24.00 tok/s |
-| **65,535 tokens** | 1,014.1 tok/s | **26.45 tok/s** | 11.61 tok/s | 24.67 tok/s |
-| **131,072 tokens** | 997.5 tok/s | **23.17 tok/s** | 11.89 tok/s | 20.33 tok/s |
+| Context Depth | $c=1$ Prefill Speed | $c=1$ Decode TPS | $c=2$ Decode TPS | $c=4$ Decode TPS | $c=8$ Peak Decode TPS |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **0 tokens (Short)** | 832.4 tok/s | **23.73 tok/s** | **38.70 tok/s** | **57.27 tok/s** | **92.67 tok/s** |
+| **4,096 tokens** | 1,042.1 tok/s | **24.10 tok/s** | **34.07 tok/s** | **25.68 tok/s** | **60.00 tok/s** |
+| **8,192 tokens** | 1,345.4 tok/s | **23.28 tok/s** | **35.48 tok/s** | **18.59 tok/s** | **46.33 tok/s** |
+| **16,384 tokens** | 1,034.5 tok/s | **22.15 tok/s** | **21.52 tok/s** | **9.65 tok/s** | **29.67 tok/s** |
+| **32,768 tokens** | 1,024.5 tok/s | **23.39 tok/s** | 12.23 tok/s | 4.82 tok/s | 24.00 tok/s |
+| **65,535 tokens** | 1,014.1 tok/s | **26.45 tok/s** | 11.61 tok/s | 2.17 tok/s | 24.67 tok/s |
+| **131,072 tokens** | 997.5 tok/s | **23.17 tok/s** | 11.89 tok/s | 1.18 tok/s | 20.33 tok/s |
 
 > **Key Takeaway:** Single-stream decode throughput is **100% depth-invariant** (~23–26 tok/s) across the entire 131k context window with zero degradation. Concurrency peak throughput reaches **92.67 tok/s**.
 
 ---
 
 ### 5. Spark Arena Leaderboard Category Snapshot
-*(Snapshot as of 1 September 2026 under filter: `Large MoE (≥ 180B)` · `Single Node` · `Concurrency: 1` · `tg128`)*
+*(Snapshot as of 1 September 2026 under filter: `Large MoE (≥ 180B)` · `Single Node` · `Concurrency: 1` · `tg128`. Spark Arena classifies the ~176B-total model in this tier.)*
 
 Recorded decode throughput of **28.69 tok/s** on a single DGX Spark node (Grace-Blackwell GB10):
 
