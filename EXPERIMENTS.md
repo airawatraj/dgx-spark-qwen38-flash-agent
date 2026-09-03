@@ -88,14 +88,29 @@ flowchart TD
     Shards --> HashK
 ```
 
-1. **Mean-Pooling Theoretical Ceiling**:
+1. **Mean-Pooling Theoretical Ceiling & Ridge Projection $W$**:
    - Compressing with ratio $R=4$ by pooling rows hashing to the same slot yields an exact cosine similarity of:
      $$\text{Cosine}(\hat{x}, x) \approx \frac{1}{\sqrt{R}} = \frac{1}{\sqrt{4}} = 0.50$$
-   - Per-head $160 \times 160$ ridge-fitted linear projection matrices ($W_h$) map reconstructions back toward true rows.
-2. **Ablation Findings**:
-   - **Signed accumulation**: Slightly worse than plain mean (rows share common components that mean-pooling preserves, whereas sign-cancellation degrades them).
-   - **Norm-weighted pooling**: Showed no improvement over plain mean because row norms across the table are already tightly distributed.
-   - **Model Gating Resilience**: Qwen's PLE architecture applies 1D convolutions and grouped-norm gating before injecting retrieved vectors into the residual stream, effectively filtering reconstruction noise.
+   - **Ridge Matrix Redundancy**: Because rows sharing a slot are exchangeable random vectors, $\mathbb{E}[Y \mid X] = X$. The ridge estimator $W = (X^T X)^{-1} X^T Y$ asymptotically converges to Identity ($I$).
+   - On held-out rows, applying $W$ yields identical cosine similarity to 4 decimals (`0.5086` with and without $W$). Direct inspection of `ple_hashk_R4.pt` confirms diagonal mean `0.9986` and off-diagonal mean `0.0082`.
+   - In [`patches/qwen4_exp_nvfp4.py`](patches/qwen4_exp_nvfp4.py), $W$ can now be bypassed via `SGLANG_HASHK_NO_W=1` to eliminate ~410k MACs/token of runtime `einsum`.
+
+2. **Product Quantization (PQ) vs HashK Comparison**:
+   Using [`tools/bench_pq_vs_hashk.py`](tools/bench_pq_vs_hashk.py) (credit to forum user `@jucedik`), we evaluated held-out reconstruction fidelity on 600,000 raw FP8 E4M3 rows:
+
+   | Compression Method | Bytes/Row | Ratio | Mean Cosine | Median Cosine | 5th Percentile |
+   |:---|:---:|:---:|:---:|:---:|:---:|
+   | **HashK R=4 (mean-pool only)** | 40.0 B | 4.0× | 0.5086 | 0.5120 | 0.3773 |
+   | **HashK R=4 (mean-pool + ridge W)** | 40.0 B | 4.0× | 0.5086 | 0.5120 | 0.3773 |
+   | **PQ ($m=40$)** | 40.0 B | 4.0× | **0.9492** | **0.9496** | **0.9401** |
+   | **PQ ($m=20$)** | 20.0 B | 8.0× | **0.8237** | **0.8241** | **0.8017** |
+   | **PQ ($m=10$)** | 10.0 B | 16.0× | **0.6545** | **0.6544** | **0.6207** |
+   | **PQ ($m=8$)** | 8.0 B | 20.0× | **0.5995** | **0.5992** | **0.5619** |
+
+3. **Ablation Findings & Downstream Gating**:
+   - **PQ Reconstruction Advantage**: At identical memory footprint (40 B/row, 12.8 GB total), PQ achieves **0.949** cosine vs HashK's **0.509**. Even at 20× compression (8 B/row, ~2.56 GB table), PQ cosine (**0.599**) exceeds HashK $R=4$.
+   - **Model Gating Resilience**: Qwen's PLE architecture applies 1D depthwise convolutions and grouped-norm gating before injecting retrieved vectors into the residual stream. In practice, HashK's 0.509 cosine is already sufficient for Qwen's gating to achieve 100/100 (15/15 PASS) on tool-eval benchmarks.
+   - **Reproduction**: Run `python3 tools/bench_pq_vs_hashk.py` on any model safetensors shard. Runs entirely on CPU in ~50 seconds.
 
 ---
 

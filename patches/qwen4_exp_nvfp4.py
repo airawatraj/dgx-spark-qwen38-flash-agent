@@ -100,11 +100,15 @@ def _hashk_load(device):
     global _HASHK_STATE
     if _HASHK_STATE is not None:
         return _HASHK_STATE
+    import os
+
     art = torch.load(_hashk_path(), map_location="cpu", weights_only=False)
+    no_w = os.environ.get("SGLANG_HASHK_NO_W", "0") == "1"
+    has_w = ("W" in art and art["W"] is not None and not no_w)
     st = {
         "A": art["A"].to(device),
         "B": art["B"].to(device),
-        "W": art["W"].to(device).to(torch.bfloat16),
+        "W": art["W"].to(device).to(torch.bfloat16) if has_w else None,
         "offs": torch.tensor(art["offs"], device=device, dtype=torch.int64),
         "subsz": torch.tensor(art["sub_sizes"], device=device, dtype=torch.int64),
         "suboff": torch.tensor(art["sub_offs"][:-1], device=device, dtype=torch.int64),
@@ -116,9 +120,11 @@ def _hashk_load(device):
     }
     _HASHK_STATE = st
     logger.info(
-        "HashK PLE loaded: R=%s sub-rows=%d (~%.1f GB) from %s",
+        "HashK PLE loaded: R=%s sub-rows=%d (~%.1f GB) W_proj=%s from %s",
         art.get("R"), st["A"].shape[0],
-        (st["A"].numel() + st["B"].numel()) / 1e9, _hashk_path(),
+        (st["A"].numel() + st["B"].numel()) / 1e9,
+        "enabled" if has_w else "bypassed (identity)",
+        _hashk_path(),
     )
     return st
 
@@ -137,6 +143,8 @@ def _hashk_gather(emb, ids: torch.Tensor) -> torch.Tensor:
     hat = torch.cat(
         [st["A"][sA].to(torch.bfloat16), st["B"][sB].to(torch.bfloat16)], dim=-1
     )  # [T, 16, 160]
+    if st["W"] is None:
+        return hat
     return torch.einsum("thd,hde->the", hat, st["W"])
 
 
