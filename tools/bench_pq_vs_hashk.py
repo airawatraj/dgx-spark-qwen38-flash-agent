@@ -5,7 +5,10 @@ Compares row reconstruction fidelity on held-out rows from the Qwen3.8-Flash-Nex
 PLE n-gram embedding table (OCP FP8 E4M3, dim=160).
 
 Can read directly from a local safetensors shard (e.g. model-plefp8-00000.safetensors)
-without third-party dependencies (numpy only, runs entirely on CPU in ~3 min).
+without third-party dependencies (numpy only, runs entirely on CPU in ~50s).
+
+Based on comparative research and findings by @jucedik on the NVIDIA Developer Forums:
+https://gist.github.com/Jucedik23/ca21eea17846d26ff3ce8090c54d6564
 """
 import glob, json, os, sys, time
 import numpy as np

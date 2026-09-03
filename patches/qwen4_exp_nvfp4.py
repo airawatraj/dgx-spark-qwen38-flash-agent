@@ -103,6 +103,7 @@ def _hashk_load(device):
     import os
 
     art = torch.load(_hashk_path(), map_location="cpu", weights_only=False)
+    # Bypass redundant ridge projection W to save ~410k MACs/token (credit @jucedik)
     no_w = os.environ.get("SGLANG_HASHK_NO_W", "0") == "1"
     has_w = ("W" in art and art["W"] is not None and not no_w)
     st = {

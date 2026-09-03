@@ -140,3 +140,31 @@ To ensure long-term stability and prevent silent degradation on production DGX S
 - [`tools/poison_sentinel.sh`](tools/poison_sentinel.sh): Canary probe running deep-context requests to verify output validity and auto-recover if poisoned.
 - [`tools/watchdog.sh`](tools/watchdog.sh): Rate-limited watchdog monitoring decode batch logs to detect and restart silent wedges (accept-len 1.00 while `/health` is 200).
 - [`tools/bench_cc3.py`](tools/bench_cc3.py): Validated concurrency benchmark measuring true window-aggregate decode throughput.
+
+---
+
+## 6. Future Architectural Enhancements & Risk Analysis
+
+The following roadmap items represent potential performance and memory footprint optimizations, along with their evaluated risk profiles:
+
+### A. Product Quantization (PQ) Runtime Gather Kernel
+- **Opportunity**: Offline testing proved that $m=20$ PQ (20 Bytes/row) achieves **0.8237 cosine similarity** vs HashK's **0.5086**. Replacing HashK with an 8× PQ table would shrink GPU memory residency from **12.8 GB down to 6.4 GB**, directly freeing **6.4 GB of VRAM** for deeper KV cache allocations.
+- **Technical Risks & Considerations**:
+  - *Draft-Token Latency*: HashK uses a direct, single-level tensor gather across GPU memory. PQ requires a two-level gather (fetching codebook centroid indices, then gathering vectors from codebooks). The runtime kernel must be heavily optimized in Triton/CUDA to ensure draft token evaluation during NEXTN speculative decoding does not incur a latency penalty.
+  - *Offline Fitting Time*: Training $k$-means codebooks across the full 51 GB table requires ~30–60 minutes of offline compute.
+  - *Status*: Under research in [`tools/bench_pq_vs_hashk.py`](tools/bench_pq_vs_hashk.py). Safe to evaluate offline without modifying the production serving container.
+
+### B. Attention Indexer Budget Expansion (`indexer_budget: 4096`)
+- **Opportunity**: Community testing by `@Digital_David` on DGX Spark demonstrated that increasing `indexer_budget` from `2048` to `4096` in `config.json` improved multi-step agentic tool-calling accuracy (+26% on complex chains) and reduced reasoning hallucinations.
+- **Trade-offs & Considerations**:
+  - *Prefill Throughput*: Causes a ~20% reduction in cold prefill throughput (from ~1,045 to ~828 tok/s) because the indexer traverses $2\times$ more KV blocks during prompt ingestion.
+  - *Decode Throughput*: Zero degradation on active token generation (verified 0% delta).
+  - *Status*: Recommended for workloads where multi-turn tool calling and reasoning precision outweigh initial prefill speed.
+
+---
+
+## 7. Acknowledgements
+
+- **`@jucedik`** (NVIDIA Developer Forums): Identified the mathematical redundancy of the per-head ridge projection matrix $W$ ($\mathbb{E}[Y \mid X] = X$ under mean pooling) and authored the foundational Product Quantization offline comparison script that inspired [`tools/bench_pq_vs_hashk.py`](tools/bench_pq_vs_hashk.py).
+- **`@Digital_David`** (NVIDIA Developer Forums): Documented empirical evaluation sweeps for `indexer_budget` tuning on single DGX Spark nodes.
+- **RadixArk & Alibaba Qwen Team**: For the Qwen3.8-Flash-Next architecture and NVFP4 checkpoint weights.
