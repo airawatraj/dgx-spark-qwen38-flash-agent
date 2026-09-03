@@ -69,7 +69,7 @@ Evaluation on 15 complex tool-calling scenarios including multi-step chains, par
 
 ### A. PLE Compression: HashK vs Alternatives
 
-The 51.2 GB PLE n-gram table (320M rows × 160 dimensions FP8) cannot be quantized with standard FP4 GEMM toolchains because it is a **hash-addressed gather**, not a dense matmul. We explored multiple compression strategies:
+The 51.2 GB PLE n-gram table (320M rows × 160 dimensions FP8) cannot be quantized with standard FP4 GEMM toolchains because it is a **hash-addressed gather**, not a dense matmul. Multiple compression strategies were evaluated:
 
 ```mermaid
 flowchart TD
@@ -96,7 +96,7 @@ flowchart TD
    - In [`patches/qwen4_exp_nvfp4.py`](patches/qwen4_exp_nvfp4.py), $W$ can now be bypassed via `SGLANG_HASHK_NO_W=1` to eliminate ~410k MACs/token of runtime `einsum`.
 
 2. **Product Quantization (PQ) vs HashK Comparison**:
-   Using [`tools/bench_pq_vs_hashk.py`](tools/bench_pq_vs_hashk.py) (credit to forum user `@jucedik`), we evaluated held-out reconstruction fidelity on 600,000 raw FP8 E4M3 rows:
+   Using [`tools/bench_pq_vs_hashk.py`](tools/bench_pq_vs_hashk.py) (credit to forum user `@jucedik`), held-out reconstruction fidelity was evaluated on 600,000 raw FP8 E4M3 rows:
 
    | Compression Method | Bytes/Row | Ratio | Mean Cosine | Median Cosine | 5th Percentile |
    |:---|:---:|:---:|:---:|:---:|:---:|
